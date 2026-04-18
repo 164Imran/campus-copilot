@@ -8,7 +8,7 @@ Cet agent s'occupe de la gestion des réservations de salles de bibliothèque vi
 
 *   **Comment le lancer** :
     ```bash
-    python agents/room_agent.py "Votre demande en langage naturel"
+    python agents/room_agent.py utiliser la fonction run_room_agent("Votre demande en langage naturel")
     ```
 *   **Possibilités** :
     *   **Réserver** : *"Réserve-moi une salle pour demain à 14h"*
