@@ -1,0 +1,281 @@
+/* Visual tuning adapted from MacTahoe GTK theme concepts (MIT) */
+.desktop {
+  position: fixed;
+  inset: 0;
+}
+
+.desktop-background {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.55), transparent 40%),
+    linear-gradient(145deg, rgba(240, 246, 255, 0.08), rgba(225, 235, 252, 0.12)),
+    url('../assets/wallpapers/iMacBlue.jpeg');
+  background-size: cover, cover, cover;
+  background-position: center center;
+}
+
+.glass-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.56));
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(165%);
+  -webkit-backdrop-filter: blur(24px) saturate(165%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 34px rgba(21, 36, 63, 0.26);
+}
+
+.menubar {
+  position: fixed;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1100;
+  padding: 0 11px;
+  font-size: 12px;
+  color: rgba(7, 14, 27, 0.88);
+}
+
+.menubar-left,
+.menubar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: rgba(25, 36, 58, 0.9);
+  font-weight: 500;
+}
+
+.menubar-logo,
+.menubar-active-app {
+  color: rgba(15, 25, 43, 0.95);
+  font-weight: 600;
+}
+
+.menubar-brand {
+  gap: 9px;
+}
+
+.menubar-tum-logo {
+  height: 18px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  display: block;
+}
+
+.menubar-button {
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.menubar-button:hover {
+  background-color: rgba(13, 30, 57, 0.12);
+}
+
+.desktop-icons {
+  position: fixed;
+  right: 24px;
+  top: 70px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 100;
+}
+
+.desktop-icon {
+  width: 90px;
+  border: 0;
+  background: transparent;
+  color: rgba(11, 24, 42, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.desktop-icon:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.desktop-icon-badge {
+  width: 62px;
+  height: 62px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  box-shadow: 0 6px 16px rgba(40, 66, 110, 0.12);
+  overflow: hidden;
+}
+
+.desktop-icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.desktop-icon-label {
+  font-size: 12px;
+  text-align: center;
+}
+
+.window-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 400;
+}
+
+.window {
+  position: absolute;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 40px rgba(17, 31, 57, 0.22);
+}
+
+.window-header {
+  height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: move;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.37));
+  position: relative;
+}
+
+.window-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(22, 31, 49, 0.9);
+  letter-spacing: 0.1px;
+}
+
+.window-toolbar-pill {
+  width: 94px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(0, 136, 255, 0.2);
+  margin-left: 10px;
+}
+
+.window-body {
+  height: calc(100% - 40px);
+  padding: 18px;
+}
+
+.traffic-lights {
+  display: flex;
+  gap: 7px;
+}
+
+.tl {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 0;
+}
+
+.tl-red { background: #ff5f56; }
+.tl-yellow { background: #ffbd2e; }
+.tl-green { background: #27c93f; }
+
+.app-shell {
+  height: 100%;
+  border-radius: 14px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  color: rgba(20, 29, 43, 0.93);
+}
+
+.app-shell h2 {
+  margin: 0 0 8px;
+  font-size: 23px;
+}
+
+.app-shell p {
+  margin: 0;
+  color: var(--text-subtle);
+  color: rgba(31, 45, 67, 0.8);
+}
+
+.dock-wrapper {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+}
+
+.dock {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.dock-item {
+  width: 56px;
+  height: 56px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.75);
+  color: rgba(15, 28, 44, 0.95);
+  cursor: pointer;
+  transition: transform 0.14s ease, filter 0.14s ease;
+  position: relative;
+  transform-origin: bottom center;
+}
+
+.dock-item:hover {
+  filter: brightness(1.08) saturate(1.05);
+}
+
+.dock-emoji {
+  font-size: 27px;
+}
+
+.dock-icon-image {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 7px rgba(12, 27, 51, 0.2));
+}
+
+.dock-tooltip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -34px;
+  white-space: nowrap;
+  font-size: 12px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 4px 9px;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dock-item:hover .dock-tooltip {
+  opacity: 1;
+}
