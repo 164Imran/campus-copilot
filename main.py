@@ -1,4 +1,9 @@
 # main.py
+import logging
+import os
+import warnings
+warnings.filterwarnings("ignore")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -13,23 +18,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class ChatRequest(BaseModel):
     message: str
+    session_id: str = "default"
+
 
 class ChatResponse(BaseModel):
     response: str
-    agents_called: list
-    raw_results: dict
+    agents_called: list   # pour le frontend (afficher les icônes actives)
+    status_events: list = []  # progression des agents pour le frontend
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
-    result = run_orchestrator(req.message)
+    result = await run_orchestrator(req.message, session_id=req.session_id)
     return ChatResponse(
         response=result["response"],
         agents_called=result["agents_called"],
-        raw_results=result["raw_results"]
+        status_events=result.get("status_events", []),
     )
+
+
+@app.delete("/chat/history")
+async def clear_history(session_id: str = "default"):
+    """Remet la conversation à zéro."""
+    from orchestrator import clear_conversation
+    clear_conversation(session_id)
+    return {"status": "cleared", "session_id": session_id}
+
+
+@app.get("/memory")
+async def memory():
+    """Retourne l'état de la mémoire Cognee (utile pour la démo)."""
+    from cognee_memory import get_memory_summary
+    return get_memory_summary()
