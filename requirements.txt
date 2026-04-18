@@ -11,3 +11,5 @@ pytz>=2024.1
 cognee>=1.0.0
 fastembed>=0.8.0
 s3fs>=2026.3.0
+icalendar
+pytz
