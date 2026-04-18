@@ -96,3 +96,6 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
         print(run_room_agent(sys.argv[1]))
+
+
+run_room_agent("Annule la reservation de demain")
