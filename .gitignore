@@ -9,3 +9,14 @@ tumai
 */manual_events.json
 */local_event.ics
 */reservation_history.json
+
+# Moodle agent artifacts
+/tmp/
+*.mp3
+output_summary.txt
+output_summary.html
+generate_html.py
+campus_copilot_full.py
+test_aws_connection.py
+test_moodle_connection.py
+test_rag.py
