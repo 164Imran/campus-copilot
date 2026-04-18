@@ -23,6 +23,8 @@ if not TUM_USERNAME or not TUM_PASSWORD:
     TUM_USERNAME = TUM_USERNAME or mb_env.get("USERNAME")
     TUM_PASSWORD = TUM_PASSWORD or mb_env.get("PASSWORD")
 
+# Dossiers de données
+AGENT_BOOKING_DIR = os.path.join(BASE_DIR, "agent-booking")
 HISTORY_FILE = os.path.join(AGENT_BOOKING_DIR, "reservation_history.json")
 CHAT_HISTORY_FILE = os.path.join(AGENT_BOOKING_DIR, "chat_history.json")
 CHAT_HISTORY_MAX = 20  # messages max conservés

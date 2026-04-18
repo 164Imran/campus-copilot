@@ -1,0 +1,162 @@
+[
+  {
+    "role": "user",
+    "content": "Annule toutes mes reservations"
+  },
+  {
+    "role": "assistant",
+    "content": "Je comprends que vous souhaitez annuler toutes vos r\u00e9servations. Cependant, je n'ai pas acc\u00e8s \u00e0 la liste de vos r\u00e9servations existantes. \n\nPour annuler une r\u00e9servation, j'ai besoin de conna\u00eetre la ou les dates sp\u00e9cifiques de vos r\u00e9servations au format 'YYYY-MM-DD' (par exemple : '2026-04-21').\n\nPourriez-vous me pr\u00e9ciser :\n- Quelles sont les dates de vos r\u00e9servations que vous souhaitez annuler ?\n\nPar exemple : \"J'ai des r\u00e9servations le 19 avril, le 21 avril et le 25 avril 2026\""
+  },
+  {
+    "role": "user",
+    "content": "Annule ma reservation du 19, du 21 et du 25"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: \u2705 Login successful via TUM.\n\u2139\ufe0f Fetching active bookings to find reservation on 2026-04-25...\n\u26a0\ufe0f No active booking found for date 2026-04-25\n"
+  },
+  {
+    "role": "user",
+    "content": "Reserve mardi a 9h"
+  },
+  {
+    "role": "assistant",
+    "content": "Je vais r\u00e9server une salle d'\u00e9tude pour vous mardi prochain (22 avril 2026) \u00e0 partir de 9h. \n\nCependant, j'ai besoin de savoir jusqu'\u00e0 quelle heure vous souhaitez r\u00e9server la salle. Par exemple :\n- Jusqu'\u00e0 13h ? (9h-13h)\n- Jusqu'\u00e0 17h ? (9h-17h)\n- Une autre heure ?\n\nPourriez-vous me pr\u00e9ciser l'heure de fin souhait\u00e9e ?"
+  },
+  {
+    "role": "user",
+    "content": "Reserve mardi a 9h-12h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-22 \u00e0 09:00:00-12:00:00."
+  },
+  {
+    "role": "user",
+    "content": "Reserve mardi de 9h a12h"
+  },
+  {
+    "role": "assistant",
+    "content": "Vous avez d\u00e9j\u00e0 une r\u00e9servation pour mardi 22 avril 2026 de 09:00:00 \u00e0 12:00:00 (voir l'historique de vos r\u00e9servations r\u00e9ussies).\n\nSouhaitez-vous :\n- Faire une nouvelle r\u00e9servation pour un autre mardi ?\n- Modifier les horaires de cette r\u00e9servation existante ?"
+  },
+  {
+    "role": "user",
+    "content": "Reserve mardi 21 de 9h a12h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-21 \u00e0 09:00:00-12:00:00."
+  },
+  {
+    "role": "user",
+    "content": "Annule la derniere reservation"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: \u2705 Login successful via TUM.\n\u2139\ufe0f Fetching active bookings to find reservation on 2026-04-21...\n\u2139\ufe0f Found matching active booking 52263479 for 2026-04-21T07:00:00+00:00\n\u2705 Booking 52263479 successfully canceled.\n"
+  },
+  {
+    "role": "user",
+    "content": "Reserve lundi a 17h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-21 \u00e0 17:00:00-19:00:00."
+  },
+  {
+    "role": "user",
+    "content": "Reserve lundi a 17h"
+  },
+  {
+    "role": "assistant",
+    "content": "Vous avez d\u00e9j\u00e0 une r\u00e9servation pour lundi 21 avril 2026 de 17:00:00 \u00e0 19:00:00 (voir l'historique de vos r\u00e9servations r\u00e9ussies).\n\nSouhaitez-vous :\n- Faire une nouvelle r\u00e9servation pour un autre lundi ?\n- Modifier les horaires de cette r\u00e9servation existante ?"
+  },
+  {
+    "role": "user",
+    "content": "Reserve lundi a 17h"
+  },
+  {
+    "role": "assistant",
+    "content": "Vous avez d\u00e9j\u00e0 une r\u00e9servation active pour lundi 21 avril 2026 de 17:00:00 \u00e0 19:00:00.\n\nVoulez-vous vraiment faire une nouvelle r\u00e9servation pour le m\u00eame cr\u00e9neau horaire ? Cela pourrait cr\u00e9er un doublon. \n\nSi vous souhaitez continuer malgr\u00e9 tout, confirmez-le moi et je proc\u00e9derai \u00e0 la r\u00e9servation."
+  },
+  {
+    "role": "user",
+    "content": "Reserve lundi a 17h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-20 \u00e0 17:00:00-19:00:00."
+  },
+  {
+    "role": "user",
+    "content": "Annule les deux dernieres reservations effectuees"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: \u2705 Login successful via TUM.\n\u2139\ufe0f Fetching active bookings to find reservation on 2026-04-20...\n\u2139\ufe0f Found matching active booking 52262790 for 2026-04-20T11:00:00+00:00\n\u2705 Booking 52262790 successfully canceled.\n\u2139\ufe0f Found matching active booking 52265295 for 2026-04-20T15:00:00+00:00\n\u2705 Booking 52265295 successfully canceled.\n"
+  },
+  {
+    "role": "user",
+    "content": "Quels sont mes cours pour lundi prochain ?"
+  },
+  {
+    "role": "assistant",
+    "content": "Emploi du temps pour les 3 prochains jours :\n- Monday 20/04 \u00e0 12:00 : Introduction to Deep Learning (IN2346) VI, Standardgruppe (00.02.001, MI HS 1, Friedrich L. Bauer H\u00f6rsaal (5602.EG.001))\n- Tuesday 21/04 \u00e0 07:30 : Space Exploration - Exercise Consultation UE, Standardgruppe (01.126, Cip-Pool/Seminarraum (9377.01.126))\n- Tuesday 21/04 \u00e0 12:00 : Einf\u00fchrung in die Kern-, Teilchen- und Astrophysik (in englischer Sprache) VO, Standardgruppe (2501, Rudolf-M\u00f6\u00dfbauer-H\u00f6rsaal (5101.EG.501))\n"
+  },
+  {
+    "role": "user",
+    "content": "Annule les deux dernieres reservations effectuees"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: \u2705 Login successful via TUM.\n\u2139\ufe0f Fetching active bookings to find reservation on 2026-04-21...\n\u26a0\ufe0f No active booking found for date 2026-04-21\n"
+  },
+  {
+    "role": "user",
+    "content": "R\u00e9serve-moi une salle pour demain \u00e0 14h et ajoute-le \u00e0 mon calendrier"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-19 \u00e0 14:00:00-16:00:00."
+  },
+  {
+    "role": "user",
+    "content": "R\u00e9serve-moi une salle pour demain 10h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-19 \u00e0 10:00:00-12:00:00."
+  },
+  {
+    "role": "user",
+    "content": "R\u00e9serve-moi une salle pour demain \u00e0 14h et ajoute-le \u00e0 mon calendrier"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-19 \u00e0 14:00:00-16:00:00."
+  },
+  {
+    "role": "user",
+    "content": "R\u00e9serve-moi une salle pour demain \u00e0 14h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-19 \u00e0 14:00:00-16:00:00."
+  },
+  {
+    "role": "user",
+    "content": "R\u00e9serve-moi une salle pour lundi \u00e0 14h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-20 \u00e0 14:00:00-16:00:00."
+  },
+  {
+    "role": "user",
+    "content": "R\u00e9serve-moi une salle pour lundi \u00e0 14h"
+  },
+  {
+    "role": "assistant",
+    "content": "Succ\u00e8s: R\u00e9servation effectu\u00e9e pour le 2026-04-20 \u00e0 14:00:00-16:00:00."
+  }
+]
