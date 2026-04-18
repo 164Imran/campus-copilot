@@ -1,20 +1,28 @@
 import os
 import subprocess
 import datetime
-from dotenv import load_dotenv, set_key
+from dotenv import load_dotenv, dotenv_values, set_key
 
 # LangChain et Bedrock
 from langchain_aws import ChatBedrockConverse
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 
-# Chargement de l'environnement depuis le dossier agent-booking
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AGENT_BOOKING_DIR = os.path.join(BASE_DIR, "agent-booking")
-load_dotenv(os.path.join(AGENT_BOOKING_DIR, ".env"))
+MANAGE_BOOKINGS_DIR = os.path.join(AGENT_BOOKING_DIR, "manage-bookings")
+
+# Charge le .env racine du projet (AWS + éventuellement TUM_USERNAME/TUM_PASSWORD)
+load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
 
 TUM_USERNAME = os.getenv("TUM_USERNAME")
 TUM_PASSWORD = os.getenv("TUM_PASSWORD")
+
+# Fallback : lit directement depuis manage-bookings/.env (USERNAME/PASSWORD)
+if not TUM_USERNAME or not TUM_PASSWORD:
+    mb_env = dotenv_values(os.path.join(MANAGE_BOOKINGS_DIR, ".env"))
+    TUM_USERNAME = TUM_USERNAME or mb_env.get("USERNAME")
+    TUM_PASSWORD = TUM_PASSWORD or mb_env.get("PASSWORD")
 
 @tool
 def book_study_room(booking_time: str, target_days_ahead: int) -> str:
@@ -28,9 +36,11 @@ def book_study_room(booking_time: str, target_days_ahead: int) -> str:
     
     engine_dir = os.path.join(AGENT_BOOKING_DIR, "manage-bookings")
     env_path = os.path.join(engine_dir, ".env")
-    
-    set_key(env_path, "USERNAME", TUM_USERNAME)
-    set_key(env_path, "PASSWORD", TUM_PASSWORD)
+
+    if TUM_USERNAME:
+        set_key(env_path, "USERNAME", TUM_USERNAME)
+    if TUM_PASSWORD:
+        set_key(env_path, "PASSWORD", TUM_PASSWORD)
     set_key(env_path, "SSO_PROVIDER", "tum")
     set_key(env_path, "TIMEZONE", "Europe/Berlin")
     set_key(env_path, "BOOKING_TIMES", booking_time)
@@ -55,9 +65,11 @@ def cancel_study_room(target_date: str) -> str:
     
     engine_dir = os.path.join(AGENT_BOOKING_DIR, "manage-bookings")
     env_path = os.path.join(engine_dir, ".env")
-    
-    set_key(env_path, "USERNAME", TUM_USERNAME)
-    set_key(env_path, "PASSWORD", TUM_PASSWORD)
+
+    if TUM_USERNAME:
+        set_key(env_path, "USERNAME", TUM_USERNAME)
+    if TUM_PASSWORD:
+        set_key(env_path, "PASSWORD", TUM_PASSWORD)
     set_key(env_path, "SSO_PROVIDER", "tum")
     set_key(env_path, "CANCEL_DATE", target_date)
     
@@ -69,7 +81,7 @@ def cancel_study_room(target_date: str) -> str:
 
 def run_room_agent(user_message):
     """Lance l'agent avec un message spécifié."""
-    model_id = os.getenv("BEDROCK_MODEL_ID", "eu.anthropic.claude-sonnet-4-5-20250929-v1:0")
+    model_id = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5")
     llm = ChatBedrockConverse(model=model_id, temperature=0.0)
     tools = [book_study_room, cancel_study_room]
     llm_with_tools = llm.bind_tools(tools)
@@ -85,11 +97,13 @@ def run_room_agent(user_message):
     if ai_msg.tool_calls:
         for tool_call in ai_msg.tool_calls:
             if tool_call['name'] == 'book_study_room':
-                return book_study_room.invoke(tool_call['args'])
+                msg = book_study_room.invoke(tool_call['args'])
+                return {"message": msg, "ref": "TUM-LIVE", "tool": "book_study_room"}
             elif tool_call['name'] == 'cancel_study_room':
-                return cancel_study_room.invoke(tool_call['args'])
-    
-    return ai_msg.content
+                msg = cancel_study_room.invoke(tool_call['args'])
+                return {"message": msg, "ref": "TUM-LIVE", "tool": "cancel_study_room"}
+
+    return {"message": ai_msg.content, "ref": None, "tool": None}
 
 if __name__ == "__main__":
     # Test rapide si lancé directement
