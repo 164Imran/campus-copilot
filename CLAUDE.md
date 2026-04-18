@@ -50,7 +50,11 @@ BEDROCK_MODEL_ID=anthropic.claude-sonnet-4-5
 
 ## Agents disponibles
 - **moodle** : résumer des cours, slides, nouveaux fichiers Moodle
+  - ✅ **Connexion Moodle fonctionnelle** — extraction des cours en PDF opérationnelle
+  - `run_moodle_agent()` retourne une liste de dicts : `{course, pdf_path, pdf_filename, summary}`
+  - Le PDF est extrait localement et le chemin est passé à l'agent agenda pour en extraire les deadlines
 - **agenda** : deadlines, calendrier, dates importantes
+  - Reçoit `moodle_data` (liste de cours avec `pdf_path`) pour en extraire les deadlines
 - **room** : réserver une salle d'étude, espace de travail
 
 ## Philosophie MVP
