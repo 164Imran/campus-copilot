@@ -30,6 +30,15 @@ class EventRemove(BaseModel):
     summary: str
     start_time: str
 
+@app.post("/api/calendar/sync")
+async def force_sync():
+    """Force la synchronisation des sources (TUM, Salles, Manuel)."""
+    try:
+        sync_calendar.invoke({})
+        return {"status": "synchronized"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/calendar")
 async def get_calendar():
     """Lit le fichier ICS et le convertit en JSON simple pour le front."""
