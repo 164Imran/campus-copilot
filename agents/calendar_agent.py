@@ -136,6 +136,34 @@ def add_event(summary: str, start_time: str, end_time: str, location: str = "N/A
     return sync_calendar.invoke({})
 
 
+@tool
+def remove_event(summary: str, start_time: str) -> str:
+    """
+    Supprime un événement manuel du calendrier.
+    Args:
+        summary: Le titre exact de l'événement à supprimer.
+        start_time: La date de début au format ISO (ex: 2026-04-22T12:00:00).
+    """
+    manual_path = os.path.join(os.path.dirname(__file__), "agent-calendar", "manual_events.json")
+    if not os.path.exists(manual_path):
+        return "Aucun événement manuel trouvé."
+    
+    with open(manual_path, 'r') as f:
+        events = json.load(f)
+    
+    # Filtrer pour garder tout SAUF l'événement cible
+    new_events = [e for e in events if not (e['summary'] == summary and e['start_time'] == start_time)]
+    
+    if len(new_events) == len(events):
+        return f"Événement '{summary}' non trouvé."
+    
+    with open(manual_path, 'w') as f:
+        json.dump(new_events, f, indent=4)
+    
+    # Synchroniser pour mettre à jour le .ics
+    sync_calendar.invoke({})
+    return f"Événement '{summary}' supprimé avec succès."
+
 if __name__ == "__main__":
     # Test
     from dotenv import load_dotenv
@@ -157,5 +185,6 @@ if __name__ == "__main__":
     # print(get_user_schedule.invoke({"days_ahead": 3}))
     
     # Test de synchronisation complète
+    remove_event.invoke({"summary": "Déjeuner avec le Professeur", "start_time": "2026-04-22T12:00:00"})
     print(sync_calendar.invoke({}))
 

@@ -10,5 +10,17 @@
         "start_time": "2026-04-22T12:00:00",
         "end_time": "2026-04-22T13:30:00",
         "location": "Mensa"
+    },
+    {
+        "summary": "Hackathon",
+        "start_time": "2026-04-24T10:00",
+        "end_time": "2026-04-24T12:00",
+        "location": "Munich"
+    },
+    {
+        "summary": "Hackathon",
+        "start_time": "2026-04-20T12:00",
+        "end_time": "2026-04-20T13:00",
+        "location": "Munich"
     }
 ]
