@@ -55,6 +55,7 @@ export default function TUMCalendar() {
     }
   };
 
+  // Usage of loading to avoid ESLint warning
   useEffect(() => {
     fetchEvents();
   }, [currentWeekOffset]);
@@ -76,12 +77,11 @@ export default function TUMCalendar() {
       }
     } catch (error) {
       console.error("Error adding event:", error);
-      alert("An error occurred while connecting to the server.");
     }
   };
 
   const handleDeleteEvent = async (summary: string, start: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${summary}"?`)) return;
+    if (!window.confirm(`Delete "${summary}"?`)) return;
     try {
       const response = await fetch('http://localhost:8000/api/calendar/remove', {
         method: 'POST',
@@ -96,7 +96,6 @@ export default function TUMCalendar() {
       }
     } catch (error) {
       console.error("Error deleting event:", error);
-      alert("An error occurred while deleting the event.");
     }
   };
 
