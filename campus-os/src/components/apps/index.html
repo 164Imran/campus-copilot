@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>IA Voice Agent - Live</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #1a1a1a;
+            color: white;
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        #transcript-box {
+            height: 150px;
+            padding: 20px;
+            background: #2d2d2d;
+            border-radius: 10px;
+            border: 1px solid #444;
+            overflow-y: auto;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        #agent-response {
+            min-height: 100px;
+            padding: 20px;
+            background: #1e293b;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            color: #60a5fa;
+            font-weight: 500;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .partial {
+            color: #888;
+        }
+
+        .final {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        #btn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border-radius: 50px;
+            border: none;
+            background: #6366f1;
+            color: white;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        #btn.recording {
+            background: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Agent IA Vocal</h1>
+
+        <div id="transcript-box">
+            <span id="stt-display">En attente de la voix...</span>
+        </div>
+
+        <div id="agent-response">
+            <em id="agent-text">La réponse de l'IA s'affichera ici...</em>
+        </div>
+
+        <button id="btn">Démarrer l'écoute</button>
+    </div>
+
+    <script>
+        let socket;
+        let mediaRecorder;
+        const btn = document.getElementById('btn');
+        const sttDisplay = document.getElementById('stt-display');
+        const agentText = document.getElementById('agent-text');
+        let fullTranscript = "";
+
+        // --- Gestion de la file d'attente audio ---
+        let audioQueue = [];
+        let isPlaying = false;
+
+        function playNextAudio() {
+            if (audioQueue.length === 0) {
+                isPlaying = false;
+                return;
+            }
+            isPlaying = true;
+            const audioBlob = audioQueue.shift();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.onended = () => {
+                playNextAudio();
+            };
+            audio.play();
+        }
+        // ------------------------------------------
+
+        btn.onclick = async () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                stopRecording();
+                return;
+            }
+            startRecording();
+        };
+
+        async function startRecording() {
+            fullTranscript = "";
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close();
+            }
+
+            // Connexion au backend Python
+            socket = new WebSocket('ws://localhost:8000/ws/stream');
+            socket.binaryType = "blob"; // Important pour recevoir l'audio d'ElevenLabs
+
+            socket.onopen = async () => {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0 && socket.readyState === 1) {
+                        socket.send(event.data);
+                    }
+                };
+
+                mediaRecorder.start(250);
+                btn.innerText = "Arrêter l'écoute";
+                btn.classList.add('recording');
+                sttDisplay.innerHTML = "<em>Je vous écoute...</em>";
+                agentText.innerText = "...";
+            };
+
+            socket.onmessage = async (event) => {
+                // CAS 1 : RÉCEPTION AUDIO (Binaire)
+                if (event.data instanceof Blob) {
+                    console.log("🔊 Audio reçu d'ElevenLabs");
+                    audioQueue.push(event.data);
+                    if (!isPlaying) {
+                        playNextAudio();
+                    }
+                    return;
+                }
+
+                // CAS 2 : RÉCEPTION TEXTE (JSON)
+                const data = JSON.parse(event.data);
+
+                // Transcription en direct (STT)
+                if (data.type === "stt") {
+                    if (data.is_final) {
+                        fullTranscript += data.text + " ";
+                        sttDisplay.innerHTML = `<span class="final">${fullTranscript}</span>`;
+                    } else {
+                        sttDisplay.innerHTML = `<span class="final">${fullTranscript}</span><span class="partial">${data.text}</span>`;
+                    }
+                }
+                // Réponse de l'Agent (Bedrock)
+                else if (data.type === "agent") {
+                    agentText.innerHTML = "🤖 " + data.text;
+                }
+            };
+
+            socket.onclose = () => {
+                console.log("WebSocket fermé");
+                stopRecording();
+            };
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) mediaRecorder.stop();
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                // Envoyer la transcription complète pour traitement par Bedrock
+                socket.send(JSON.stringify({ type: "process", text: fullTranscript }));
+            }
+            btn.innerText = "Démarrer l'écoute";
+            btn.classList.remove('recording');
+        }
+    </script>
+</body>
+
+</html>
