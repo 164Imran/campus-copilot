@@ -11,6 +11,8 @@ export interface WindowState {
   width: number;
   height: number;
   zIndex: number;
+  isMaximized?: boolean;
+  prevDims?: { x: number; y: number; width: number; height: number };
 }
 
 interface AppWindowConfig {
@@ -36,6 +38,8 @@ interface OsStore {
   closeWindow: (windowId: string) => void;
   focusWindow: (windowId: string) => void;
   moveWindow: (windowId: string, x: number, y: number) => void;
+  updateWindow: (windowId: string, updates: Partial<WindowState>) => void;
+  toggleMaximize: (windowId: string) => void;
 }
 
 const getTopZ = (windows: WindowState[]) => windows.reduce((top, w) => Math.max(top, w.zIndex), 0);
@@ -85,9 +89,36 @@ export const useOsStore = create<OsStore>((set, get) => ({
   },
   moveWindow: (windowId, x, y) => {
     set({
-      windows: get().windows.map((windowItem) =>
-        windowItem.id === windowId ? { ...windowItem, x, y } : windowItem
-      ),
+      windows: get().windows.map((w) => (w.id === windowId ? { ...w, x, y, isMaximized: false } : w)),
+    });
+  },
+  updateWindow: (windowId, updates) => {
+    set({
+      windows: get().windows.map((w) => (w.id === windowId ? { ...w, ...updates } : w)),
+    });
+  },
+  toggleMaximize: (windowId) => {
+    const state = get();
+    const MARGIN = 12;
+    const MENU_BAR_HEIGHT = 36;
+    const DOCK_HEIGHT = 84;
+
+    set({
+      windows: state.windows.map((w) => {
+        if (w.id !== windowId) return w;
+        if (w.isMaximized) {
+          return { ...w, ...w.prevDims, isMaximized: false };
+        }
+        return {
+          ...w,
+          isMaximized: true,
+          prevDims: { x: w.x, y: w.y, width: w.width, height: w.height },
+          x: MARGIN,
+          y: MENU_BAR_HEIGHT + MARGIN,
+          width: window.innerWidth - (MARGIN * 2),
+          height: window.innerHeight - MENU_BAR_HEIGHT - DOCK_HEIGHT - (MARGIN * 2),
+        };
+      }),
     });
   },
 }));

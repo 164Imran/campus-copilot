@@ -1,4 +1,5 @@
 import { ReactElement } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import TUMCalendar from '../apps/TUMCalendar';
 import TUMCopilot from '../apps/TUMCopilot';
 import TUMCourses from '../apps/TUMCourses';
@@ -32,11 +33,13 @@ export default function Desktop() {
       </section>
 
       <section className="window-layer">
-        {windows.map((windowItem) => (
-          <Window key={windowItem.id} windowData={windowItem}>
-            {APP_COMPONENTS[windowItem.appId]}
-          </Window>
-        ))}
+        <AnimatePresence>
+          {windows.map((windowItem) => (
+            <Window key={windowItem.id} windowData={windowItem}>
+              {APP_COMPONENTS[windowItem.appId]}
+            </Window>
+          ))}
+        </AnimatePresence>
       </section>
 
       <Dock />
