@@ -8,6 +8,38 @@ export default function TUMVoice() {
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const fullTranscriptRef = useRef<string>("");
+  const audioQueueRef = useRef<Blob[]>([]);
+  const isPlayingRef = useRef<boolean>(false);
+
+  const sttContainerRef = useRef<HTMLDivElement>(null);
+  const agentContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sttContainerRef.current) {
+      sttContainerRef.current.scrollTop = sttContainerRef.current.scrollHeight;
+    }
+  }, [sttText]);
+
+  useEffect(() => {
+    if (agentContainerRef.current) {
+      agentContainerRef.current.scrollTop = agentContainerRef.current.scrollHeight;
+    }
+  }, [agentText]);
+
+  const playNextAudio = () => {
+    if (audioQueueRef.current.length === 0) {
+      isPlayingRef.current = false;
+      return;
+    }
+    isPlayingRef.current = true;
+    const audioBlob = audioQueueRef.current.shift()!;
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.onended = () => {
+      playNextAudio();
+    };
+    audio.play();
+  };
 
   const startRecording = async () => {
     fullTranscriptRef.current = "";
@@ -45,9 +77,10 @@ export default function TUMVoice() {
       // CAS 1 : RÉCEPTION AUDIO (Binaire)
       if (event.data instanceof Blob) {
         console.log("🔊 Audio reçu d'ElevenLabs");
-        const audioUrl = URL.createObjectURL(event.data);
-        const audio = new Audio(audioUrl);
-        audio.play();
+        audioQueueRef.current.push(event.data);
+        if (!isPlayingRef.current) {
+          playNextAudio();
+        }
         return;
       }
 
@@ -115,23 +148,26 @@ export default function TUMVoice() {
   }, []);
 
   return (
-    <div className="app-shell" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ marginBottom: 0 }}>Agent IA Vocal</h2>
-        <p style={{ marginTop: '8px', marginBottom: '10px' }}>Assistant vocal en mode demo, avec orb et etats d'ecoute/parole.</p>
+    <div className="app-shell" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '16px', height: '100%', overflowY: 'auto', padding: '20px', boxSizing: 'border-box' }}>
+      <div style={{ textAlign: 'center', flexShrink: 0 }}>
+        <h2 style={{ margin: '0 0 4px 0' }}>Agent IA Vocal</h2>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-subtle)' }}>Assistant vocal en mode demo, avec orb et etats d'ecoute/parole.</p>
       </div>
       
-      <div style={{
+      <div 
+        ref={sttContainerRef}
+        style={{
         width: '100%',
         maxWidth: '600px',
-        height: '140px',
+        height: '80px',
         padding: '16px',
         background: 'var(--glass-2)',
         borderRadius: '12px',
         border: '1px solid var(--stroke)',
         overflowY: 'auto',
         boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)',
-        textAlign: 'left'
+        textAlign: 'left',
+        flexShrink: 0
       }}>
         {!isRecording && !sttText.final && !sttText.partial ? (
           <span style={{ color: 'var(--text-subtle)', fontStyle: 'italic' }}>En attente de la voix...</span>
@@ -143,17 +179,22 @@ export default function TUMVoice() {
         )}
       </div>
 
-      <div style={{
+      <div 
+        ref={agentContainerRef}
+        style={{
         width: '100%',
         maxWidth: '600px',
-        minHeight: '100px',
+        height: '150px',
         padding: '16px',
         background: 'rgba(0, 136, 255, 0.08)',
         borderRadius: '12px',
         border: '1px solid rgba(0, 136, 255, 0.2)',
         color: 'var(--tahoe-accent)',
         fontWeight: 500,
-        textAlign: 'left'
+        textAlign: 'left',
+        overflowY: 'auto',
+        lineHeight: '1.5',
+        flexShrink: 0
       }}>
         <em>{agentText}</em>
       </div>
@@ -171,7 +212,8 @@ export default function TUMVoice() {
           color: 'white',
           transition: 'all 0.3s ease',
           fontWeight: 600,
-          boxShadow: isRecording ? '0 0 16px rgba(255, 95, 86, 0.4)' : '0 4px 12px rgba(0, 136, 255, 0.3)'
+          boxShadow: isRecording ? '0 0 16px rgba(255, 95, 86, 0.4)' : '0 4px 12px rgba(0, 136, 255, 0.3)',
+          flexShrink: 0
         }}
       >
         {isRecording ? "Arrêter l'écoute" : "Démarrer l'écoute"}

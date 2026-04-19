@@ -99,6 +99,26 @@
         const agentText = document.getElementById('agent-text');
         let fullTranscript = "";
 
+        // --- Gestion de la file d'attente audio ---
+        let audioQueue = [];
+        let isPlaying = false;
+
+        function playNextAudio() {
+            if (audioQueue.length === 0) {
+                isPlaying = false;
+                return;
+            }
+            isPlaying = true;
+            const audioBlob = audioQueue.shift();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.onended = () => {
+                playNextAudio();
+            };
+            audio.play();
+        }
+        // ------------------------------------------
+
         btn.onclick = async () => {
             if (mediaRecorder && mediaRecorder.state === "recording") {
                 stopRecording();
@@ -112,7 +132,7 @@
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.close();
             }
-            
+
             // Connexion au backend Python
             socket = new WebSocket('ws://localhost:8000/ws/stream');
             socket.binaryType = "blob"; // Important pour recevoir l'audio d'ElevenLabs
@@ -138,9 +158,10 @@
                 // CAS 1 : RÉCEPTION AUDIO (Binaire)
                 if (event.data instanceof Blob) {
                     console.log("🔊 Audio reçu d'ElevenLabs");
-                    const audioUrl = URL.createObjectURL(event.data);
-                    const audio = new Audio(audioUrl);
-                    audio.play();
+                    audioQueue.push(event.data);
+                    if (!isPlaying) {
+                        playNextAudio();
+                    }
                     return;
                 }
 
