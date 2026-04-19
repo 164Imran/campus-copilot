@@ -239,7 +239,7 @@ export default function TUMVoice() {
         style={{
         width: '100%',
         maxWidth: '600px',
-        height: '150px',
+        height: '110px',
         padding: '16px',
         background: 'rgba(0, 136, 255, 0.08)',
         borderRadius: '12px',
