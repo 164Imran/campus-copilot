@@ -103,50 +103,36 @@ interface ChatMessage {
   attachment?: AttachmentMeta;
 }
 
+const API_BASE = 'http://localhost:8000';
+
 const SEED_MESSAGES: ChatMessage[] = [
   {
-    id: 'seed-1',
-    role: 'user',
-    content:
-      'Summarize the important points of the "Operating Systems" handout for next week.',
-  },
-  {
-    id: 'seed-2',
+    id: 'seed-welcome',
     role: 'assistant',
-    content:
-      "Here are the essentials: processes and threads, system calls, preemptive scheduling, virtual memory, and paging. Moodle exercises on state diagrams are recommended before the quiz.",
-    attachment: { name: 'OS_Summary_Week4.pdf', pages: '3 pages' },
-  },
-  {
-    id: 'seed-3',
-    role: 'user',
-    content: 'Add an exam-type question about paging.',
+    content: 'Bonjour ! Je suis Campus Co-Pilot. Demande-moi de résumer tes cours, gérer tes deadlines ou réserver une salle.',
   },
 ];
 
-const MOCK_REPLIES: Array<{ text: string; attachment?: AttachmentMeta }> = [
-  {
-    text: "Understood. For paging, remember to explain the difference between a page fault and disk access time.",
-  },
-  {
-    text: "I can help you structure a study sheet: intro, definitions, example with TLB, common pitfalls.",
-    attachment: { name: 'Paging_Sheet.pdf', pages: '2 pages' },
-  },
-  {
-    text: "If you want, send me the exact topic of the midterm and I'll adapt the level of detail.",
-  },
-  {
-    text: "Tip: practice estimating the number of page faults for a given reference string.",
-  },
-];
+interface StatusEvent {
+  agent: string;
+  status: 'running' | 'done' | 'fallback';
+  label: string;
+}
+
+const AGENT_LABELS: Record<string, string> = {
+  moodle: '📚',
+  agenda: '📅',
+  room:   '🏫',
+};
 
 export default function TUMCopilot() {
   const openWindow = useOsStore((state) => state.openWindow);
   const hintId = useId();
+  const sessionId = useRef(uid());
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
   const [draft, setDraft] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [mockRound, setMockRound] = useState(0);
+  const [statusEvents, setStatusEvents] = useState<StatusEvent[]>([]);
   const [downloadedIds, setDownloadedIds] = useState<Set<string>>(() => new Set());
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
@@ -179,30 +165,42 @@ export default function TUMCopilot() {
     return () => window.removeEventListener('mousedown', onDown);
   }, [attachMenuOpen]);
 
-  const send = () => {
+  const send = async () => {
     const text = draft.trim();
     if (!text || isTyping) return;
     setDraft('');
     setAttachMenuOpen(false);
     setMessages((prev) => [...prev, { id: uid(), role: 'user', content: text }]);
     setIsTyping(true);
+    setStatusEvents([]);
 
-    const delay = 950 + Math.random() * 700;
-    const reply = MOCK_REPLIES[mockRound % MOCK_REPLIES.length];
-    setMockRound((n) => n + 1);
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, session_id: sessionId.current }),
+      });
 
-    window.setTimeout(() => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: { response: string; agents_called: string[]; status_events: StatusEvent[] } = await res.json();
+
+      setStatusEvents(data.status_events ?? []);
+      setMessages((prev) => [
+        ...prev,
+        { id: uid(), role: 'assistant', content: data.response },
+      ]);
+    } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           id: uid(),
           role: 'assistant',
-          content: reply.text,
-          attachment: reply.attachment,
+          content: '⚠️ Impossible de joindre le serveur. Vérifie que le backend tourne sur le port 8000.',
         },
       ]);
+    } finally {
       setIsTyping(false);
-    }, delay);
+    }
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -285,11 +283,25 @@ export default function TUMCopilot() {
               exit={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.18 }}
             >
-              <div className="copilot-typing" aria-hidden>
-                <span className="copilot-typing-dot" />
-                <span className="copilot-typing-dot" />
-                <span className="copilot-typing-dot" />
-              </div>
+              {statusEvents.length > 0 ? (
+                <div className="copilot-status-events">
+                  {statusEvents.map((ev, i) => (
+                    <span
+                      key={i}
+                      className={`copilot-status-pill copilot-status-pill--${ev.status}`}
+                      title={ev.agent}
+                    >
+                      {AGENT_LABELS[ev.agent] ?? '🤖'} {ev.label}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="copilot-typing" aria-hidden>
+                  <span className="copilot-typing-dot" />
+                  <span className="copilot-typing-dot" />
+                  <span className="copilot-typing-dot" />
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
