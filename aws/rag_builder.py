@@ -1,11 +1,13 @@
 import os
 import json
 import uuid
+import difflib
 import boto3
 from botocore.config import Config
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from aws.s3_client import get_s3_client
+from aws.s3_client import get_s3_client, list_summaries
 
 load_dotenv()
 
@@ -33,7 +35,7 @@ def get_vectors_client():
 def get_bedrock_client():
     return boto3.client(
         "bedrock-runtime",
-        region_name=os.getenv("AWS_REGION", "eu-west-1"),
+        region_name=os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1")),
         config=Config(read_timeout=120),
         **_creds(),
     )
@@ -81,29 +83,40 @@ def create_vector_bucket() -> None:
         print(f"[RAG] Created index '{INDEX_NAME}' (dim={EMBED_DIM}, cosine).")
 
 
+# ── Parallel embeddings ────────────────────────────────────────────────────────
+
+def embed_parallel(texts: list[str], max_workers: int = 10) -> list[list[float]]:
+    """Embed multiple texts concurrently. Preserves order."""
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        return list(ex.map(embed, texts))
+
+
 # ── Store document ─────────────────────────────────────────────────────────────
 
 def store_document(text: str, course_name: str, file_name: str) -> int:
-    # ~500 words ≈ 2500 chars, overlap ~50 words ≈ 250 chars
     splitter = RecursiveCharacterTextSplitter(chunk_size=2500, chunk_overlap=250)
     chunks = splitter.split_text(text)
     print(f"[RAG] Splitting '{file_name}' -> {len(chunks)} chunks.")
 
-    s3  = get_s3_client()
+    # Embed all chunks in parallel
+    print(f"[RAG] Embedding {len(chunks)} chunks in parallel...")
+    vectors_data = embed_parallel(chunks, max_workers=10)
+
+    s3 = get_s3_client()
     bucket = os.getenv("S3_BUCKET_NAME")
     client = get_vectors_client()
-    vectors = []
-    for i, chunk in enumerate(chunks):
+
+    # Upload chunk texts to S3 in parallel, collect vector records
+    def _upload_chunk(args: tuple) -> dict:
+        i, chunk, vector = args
         chunk_key = f"{course_name}/{file_name}/chunk_{i}_{uuid.uuid4().hex[:8]}"
-        # Store full chunk text in S3 (no size limit)
         s3.put_object(
             Bucket=bucket,
             Key=f"rag-chunks/{chunk_key}.txt",
             Body=chunk.encode("utf-8"),
             ContentType="text/plain",
         )
-        vector = embed(chunk)
-        vectors.append({
+        return {
             "key": chunk_key,
             "data": {"float32": vector},
             "metadata": {
@@ -112,9 +125,12 @@ def store_document(text: str, course_name: str, file_name: str) -> int:
                 "chunk_index": str(i),
                 "s3_key":      f"rag-chunks/{chunk_key}.txt",
             },
-        })
+        }
 
-    # S3 Vectors accepts up to 500 vectors per request
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        vectors = list(ex.map(_upload_chunk, enumerate(zip(chunks, vectors_data))))
+
+    # S3 Vectors: up to 500 vectors per request
     batch_size = 100
     for start in range(0, len(vectors), batch_size):
         batch = vectors[start:start + batch_size]
@@ -131,7 +147,74 @@ def store_document(text: str, course_name: str, file_name: str) -> int:
 
 # ── Search ─────────────────────────────────────────────────────────────────────
 
+def resolve_course_name(name: str) -> str:
+    """Return the best-matching stored course name, or the original if no match.
+
+    Resolution order (first hit wins):
+      1. Exact key match
+      2. Case-insensitive match
+      3. Substring: user input contained in a course name
+      4. Token overlap: all user words appear in a course name
+      5. Fuzzy (difflib, cutoff 0.4)
+      6. Best token-overlap score (partial match, at least 1 word)
+    """
+    available = list(list_summaries().keys())
+    if not available:
+        return name
+
+    query = name.strip()
+
+    # 1. Exact
+    if query in available:
+        return query
+
+    # 2. Case-insensitive
+    lower_map = {c.lower(): c for c in available}
+    normalized = {c.replace("_", " ").lower(): c for c in available}
+    q_lower = query.lower()
+    if q_lower in lower_map:
+        return lower_map[q_lower]
+
+    q_norm = q_lower.replace("_", " ")
+
+    # 3. Substring: query is contained inside a full course name
+    for norm_key, original in normalized.items():
+        if q_norm in norm_key:
+            print(f"[RAG] Cours '{name}' résolu par sous-chaîne → '{original}'")
+            return original
+
+    # 4. Token overlap: every word in query found in a course name
+    q_tokens = set(q_norm.split())
+    for norm_key, original in normalized.items():
+        course_tokens = set(norm_key.split())
+        if q_tokens and q_tokens.issubset(course_tokens):
+            print(f"[RAG] Cours '{name}' résolu par tokens → '{original}'")
+            return original
+
+    # 5. Fuzzy
+    matches = difflib.get_close_matches(q_norm, normalized.keys(), n=1, cutoff=0.4)
+    if matches:
+        resolved = normalized[matches[0]]
+        print(f"[RAG] Cours '{name}' résolu par fuzzy → '{resolved}'")
+        return resolved
+
+    # 6. Best partial token overlap (at least 1 word in common)
+    best, best_score = None, 0
+    for norm_key, original in normalized.items():
+        course_tokens = set(norm_key.split())
+        score = len(q_tokens & course_tokens)
+        if score > best_score:
+            best_score, best = score, original
+    if best and best_score > 0:
+        print(f"[RAG] Cours '{name}' résolu par overlap partiel ({best_score} mot(s)) → '{best}'")
+        return best
+
+    print(f"[RAG] Cours '{name}' introuvable. Disponibles : {available}")
+    return name
+
+
 def search(query: str, course_name: str, top_k: int = 5) -> list[str]:
+    course_name = resolve_course_name(course_name)
     client = get_vectors_client()
     query_vector = embed(query)
 
@@ -139,24 +222,32 @@ def search(query: str, course_name: str, top_k: int = 5) -> list[str]:
         vectorBucketName=VECTOR_BUCKET,
         indexName=INDEX_NAME,
         queryVector={"float32": query_vector},
-        topK=top_k * 3,  # fetch extra, then filter by course client-side
+        topK=top_k * 4,  # over-fetch, filter by course client-side
         returnMetadata=True,
     )
 
-    s3     = get_s3_client()
+    s3 = get_s3_client()
     bucket = os.getenv("S3_BUCKET_NAME")
-    chunks = []
+
+    # Filter by course and collect S3 keys
+    s3_keys = []
     for item in response.get("vectors", []):
         meta = item.get("metadata", {})
         if meta.get("course") == course_name:
-            s3_key = meta.get("s3_key", "")
-            try:
-                obj = s3.get_object(Bucket=bucket, Key=s3_key)
-                chunks.append(obj["Body"].read().decode("utf-8"))
-            except Exception:
-                chunks.append("")
-        if len(chunks) >= top_k:
+            s3_keys.append(meta.get("s3_key", ""))
+        if len(s3_keys) >= top_k:
             break
+
+    # Fetch chunk texts from S3 in parallel
+    def _fetch(s3_key: str) -> str:
+        try:
+            obj = s3.get_object(Bucket=bucket, Key=s3_key)
+            return obj["Body"].read().decode("utf-8")
+        except Exception:
+            return ""
+
+    with ThreadPoolExecutor(max_workers=max(len(s3_keys), 1)) as ex:
+        chunks = [c for c in ex.map(_fetch, s3_keys) if c]
 
     print(f"[RAG] Found {len(chunks)} relevant chunks for query.")
     return chunks

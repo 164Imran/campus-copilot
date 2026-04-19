@@ -23,3 +23,11 @@ campus_copilot_full.py
 test_aws_connection.py
 test_moodle_connection.py
 test_rag.py
+exports/
+.moodle_cookies.json
+moodle_registry.json
+moodle_registry.txt
+moodle/file_registry.py
+student_memory.db
+erreur.txt
+google-chrome-stable_current_amd64.deb

@@ -3,7 +3,8 @@ import fitz  # PyMuPDF
 from pathlib import Path
 
 
-def download_and_extract(session: requests.Session, url: str, dest_dir: str = "/tmp/moodle_pdfs") -> str:
+def download_and_extract(session: requests.Session, url: str, dest_dir: str = "/tmp/moodle_pdfs") -> tuple[str, Path]:
+    """Returns (text, pdf_path)."""
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
 
@@ -16,7 +17,7 @@ def download_and_extract(session: requests.Session, url: str, dest_dir: str = "/
         for chunk in resp.iter_content(chunk_size=8192):
             f.write(chunk)
 
-    return extract_text(pdf_path)
+    return extract_text(pdf_path), pdf_path
 
 
 def extract_text(pdf_path: str | Path) -> str:

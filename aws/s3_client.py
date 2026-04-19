@@ -57,8 +57,6 @@ def _get_json(s3_key: str) -> dict | None:
     try:
         response = get_s3_client().get_object(Bucket=BUCKET, Key=s3_key)
         return json.loads(response["Body"].read().decode("utf-8"))
-    except get_s3_client().exceptions.NoSuchKey:
-        return None
     except Exception:
         return None
 
@@ -140,3 +138,16 @@ def get_processed_files() -> list[str]:
         return data.get("processed_files", [])
     except Exception:
         return []
+
+
+def get_last_sync_time() -> datetime | None:
+    """Retourne la date du dernier sync Moodle, ou None si jamais fait."""
+    try:
+        response = get_s3_client().get_object(Bucket=BUCKET, Key=PROCESSED_KEY)
+        data = json.loads(response["Body"].read().decode("utf-8"))
+        raw = data.get("updated_at")
+        if raw:
+            return datetime.fromisoformat(raw)
+    except Exception:
+        pass
+    return None

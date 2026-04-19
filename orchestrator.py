@@ -3,6 +3,8 @@ import asyncio
 import json
 import logging
 import os
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 # Imports first — cognee calls setup_logging() on import, which installs
 # structlog handlers on the root logger. We silence AFTER that.
@@ -30,24 +32,8 @@ def clear_conversation(session_id: str = "default"):
 
 
 # ── Mocks de secours ───────────────────────────────────────────────
-def mock_moodle():
-    return [
-        {
-            "course": "Analysis 1",
-            "pdf_path": "/tmp/mock_analysis1.pdf",
-            "pdf_filename": "analysis1_week10.pdf",
-            "summary": "Intégrales de Riemann, convergence des séries.",
-        },
-        {
-            "course": "Linear Algebra",
-            "pdf_path": "/tmp/mock_linalg.pdf",
-            "pdf_filename": "linalg_week10.pdf",
-            "summary": "Décomposition en valeurs propres, diagonalisation.",
-        },
-    ]
-
 def mock_agenda(moodle_results):
-    return {"new_deadlines": 2}
+    return {"new_deadlines": 0}
 
 def mock_room(user_message):
     return {"message": "Salle réservée demain à 14h.", "ref": None}
@@ -121,20 +107,40 @@ Demande : {safe_msg}
         return []
 
 
+# ── Cache Moodle ───────────────────────────────────────────────────
+def _moodle_cache_is_fresh(max_age_hours: int) -> bool:
+    """True si le dernier sync Moodle est récent — pas besoin de rescan."""
+    try:
+        from aws.s3_client import get_last_sync_time
+        last = get_last_sync_time()
+        if last is None:
+            return False
+        age = datetime.now(timezone.utc) - last
+        if age > timedelta(hours=max_age_hours):
+            print(f"[Moodle] Cache périmé ({str(age).split('.')[0]}), rescan nécessaire...")
+            return False
+        print(f"[Moodle] Cache frais (dernier sync il y a {str(age).split('.')[0]}), skip rescan.")
+        return True
+    except Exception as e:
+        print(f"[Moodle] Cache check échoué ({e}), rescan par sécurité")
+        return False
+
+
 # ── Étape 2 : Exécution des agents ────────────────────────────────
 async def run_agents_async(agents: list, user_message: str) -> tuple[dict, list]:
     results = {}
     status_events = []  # for the frontend to show progress indicators
 
     if "moodle" in agents:
+        # Ici le cache est forcément périmé (filtré en amont dans run_orchestrator)
         status_events.append({"agent": "moodle", "status": "running", "label": "Récupération des cours Moodle..."})
         fn = load_agent("moodle")
         try:
-            results["moodle"] = fn() if fn else mock_moodle()
+            results["moodle"] = fn() if fn else []
             status_events.append({"agent": "moodle", "status": "done", "label": f"{len(results['moodle'])} cours récupérés"})
         except Exception as e:
-            results["moodle"] = mock_moodle()
-            status_events.append({"agent": "moodle", "status": "fallback", "label": "Cours chargés (mode hors-ligne)"})
+            results["moodle"] = []
+            status_events.append({"agent": "moodle", "status": "error", "label": f"Moodle indisponible : {type(e).__name__}"})
 
         for course in results["moodle"]:
             await remember_course(course.get("course", "Inconnu"), course.get("summary", ""))
@@ -231,6 +237,12 @@ async def run_orchestrator(user_message: str, session_id: str = "default") -> di
     memory_context = await get_student_context(user_message)
     agents = decide_agents(user_message, session_id)
 
+    # Si le cache Moodle est frais, pas besoin de l'agent — la mémoire SQLite suffit
+    if "moodle" in agents:
+        moodle_cache_hours = int(os.getenv("MOODLE_CACHE_HOURS", "6"))
+        if _moodle_cache_is_fresh(moodle_cache_hours):
+            agents = [a for a in agents if a != "moodle"]
+
     status_events = []
 
     if agents:
@@ -261,7 +273,8 @@ Commandes disponibles :
   /agenda                    lancer l'agent Agenda (stub actuellement)
   /courses                   lister tous les cours résumés en S3
   /summary <course>          afficher les fichiers résumés d'un cours
-  /summary <course> <file>   afficher le résumé complet d'un fichier
+  /summary <course> <file>   afficher le résumé complet d'un fichier (+ export .md)
+  /export [course]           exporter en .md tous les résumés (ou d'un cours)
   /rag <course> <question>   poser une question RAG sur un cours
   /compare <c1> | <c2> | <topic>   comparer un thème entre deux cours
   <autre texte>              mode conversationnel normal (orchestrateur)
@@ -291,15 +304,51 @@ def _print_summary_files(course: str):
         print(f"  • {f.removesuffix('.json')}")
 
 
+EXPORT_DIR = Path(os.getenv("SUMMARIES_EXPORT_DIR", Path(__file__).parent / "exports" / "summaries"))
+
+
+def _export_summary_md(course: str, filename: str, summary: str) -> Path:
+    name = filename.removesuffix(".json").removesuffix(".md")
+    out = EXPORT_DIR / course / f"{name}.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(summary, encoding="utf-8")
+    return out
+
+
 def _print_summary(course: str, filename: str):
     from aws.s3_client import get_summary
-    summary = get_summary(course, filename.removesuffix(".json"))
+    name = filename.removesuffix(".json")
+    summary = get_summary(course, name)
     if not summary:
         print(f"Résumé introuvable : {course}/{filename}")
         return
     print(f"\n─── {course} / {filename} ───\n")
     print(summary)
     print("\n───────────────\n")
+    try:
+        path = _export_summary_md(course, name, summary)
+        print(f"[export] Écrit : {path}\n")
+    except Exception as e:
+        print(f"[export] Échec : {type(e).__name__}: {e}")
+
+
+def _run_export(course: str | None = None):
+    from aws.s3_client import list_summaries, get_summary
+    grouped = list_summaries()
+    if course:
+        grouped = {course: grouped.get(course, [])}
+        if not grouped[course]:
+            print(f"Aucun résumé pour '{course}'.")
+            return
+    total = 0
+    for c, files in grouped.items():
+        for f in files:
+            name = f.removesuffix(".json")
+            s = get_summary(c, name)
+            if s:
+                _export_summary_md(c, name, s)
+                total += 1
+    print(f"[export] {total} fichier(s) écrit(s) dans {EXPORT_DIR}")
 
 
 def _run_rag(course: str, question: str):
@@ -328,7 +377,13 @@ def _run_moodle_sync():
     print("\n[Moodle] Lancement…")
     try:
         res = fn()
-        print(f"[Moodle] Terminé : {len(res)} résumé(s) généré(s).")
+        if not res:
+            print("[Moodle] Aucun résumé récupéré (aucun PDF trouvé ou erreur login).")
+            return
+        print(f"\n[Moodle] {len(res)} résumé(s) disponible(s) :\n")
+        for r in res:
+            src = "S3 cache" if r.get("pdf_path") is None else "nouveau"
+            print(f"  [{src}] {r['course']} / {r['pdf_filename']}")
     except Exception as e:
         print(f"✗ Moodle échoué : {type(e).__name__}: {e}")
 
@@ -359,53 +414,42 @@ def _run_agenda():
 if __name__ == "__main__":
     async def _run_chat():
         sid = "cli-session"
-        print("Campus Co-Pilot — /help pour les commandes, 'fin' pour quitter\n")
+        print(HELP_TEXT)
         while True:
             msg = input("Toi : ").strip()
             if not msg:
                 continue
-            low = msg.lower()
-            if low == "fin":
+            if msg.lower() in ("fin", "exit", "quit"):
                 break
-            if low in ("/help", "help", "?"):
+            if msg == "/help":
                 print(HELP_TEXT)
-                continue
-            if low == "/courses":
-                _print_courses()
-                continue
-            if low == "/moodle":
+            elif msg == "/moodle":
                 _run_moodle_sync()
-                continue
-            if low == "/agenda":
+            elif msg == "/courses":
+                _print_courses()
+            elif msg == "/agenda":
                 _run_agenda()
-                continue
-            if low.startswith("/room "):
+            elif msg.startswith("/room "):
                 _run_room(msg[6:].strip())
-                continue
-            if low.startswith("/summary "):
-                parts = msg[9:].strip().split(maxsplit=1)
+            elif msg.startswith("/summary "):
+                parts = msg[9:].strip().split()
                 if len(parts) == 1:
                     _print_summary_files(parts[0])
-                else:
+                elif len(parts) >= 2:
                     _print_summary(parts[0], parts[1])
-                continue
-            if low.startswith("/rag "):
+            elif msg.startswith("/export"):
+                arg = msg[7:].strip() or None
+                _run_export(arg)
+            elif msg.startswith("/rag "):
                 parts = msg[5:].strip().split(maxsplit=1)
-                if len(parts) < 2:
-                    print("Usage : /rag <course> <question>")
-                    continue
-                _run_rag(parts[0], parts[1])
-                continue
-            if low.startswith("/compare "):
+                if len(parts) == 2:
+                    _run_rag(parts[0], parts[1])
+            elif msg.startswith("/compare "):
                 parts = [p.strip() for p in msg[9:].split("|")]
-                if len(parts) != 3:
-                    print("Usage : /compare <course1> | <course2> | <topic>")
-                    continue
-                _run_compare(parts[0], parts[1], parts[2])
-                continue
-
-            # Mode conversationnel par défaut
-            result = await run_orchestrator(msg, session_id=sid)
-            print(f"\nCo-Pilot : {result['response']}\n")
+                if len(parts) == 3:
+                    _run_compare(parts[0], parts[1], parts[2])
+            else:
+                result = await run_orchestrator(msg, session_id=sid)
+                print(f"\nCo-Pilot : {result['response']}\n")
 
     asyncio.run(_run_chat())
