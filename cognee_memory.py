@@ -13,6 +13,15 @@ load_dotenv()
 COGNEE_AVAILABLE = False
 
 try:
+    local_cognee_sys = os.path.join(os.getcwd(), ".cognee_system")
+    local_cognee_data = os.path.join(os.getcwd(), ".cognee_data")
+    os.makedirs(local_cognee_sys, exist_ok=True)
+    os.makedirs(local_cognee_data, exist_ok=True)
+    
+    # Doit être défini avant l'import de cognee !
+    os.environ["SYSTEM_ROOT_DIRECTORY"] = local_cognee_sys
+    os.environ["DATA_ROOT_DIRECTORY"] = local_cognee_data
+    
     import cognee
     from cognee import SearchType
     from cognee.infrastructure.llm.config import get_llm_config
@@ -162,7 +171,7 @@ async def get_student_context(question: str) -> str:
     conn.close()
 
     if courses:
-        context_parts.append("Cours mémorisés depuis Moodle :")
+        context_parts.append("Memorized Moodle courses:")
         for name, summary, topics_json in courses:
             try:
                 topics = json.loads(topics_json)
@@ -171,7 +180,7 @@ async def get_student_context(question: str) -> str:
                 context_parts.append(f"  • {name}")
 
     if recent_interactions:
-        context_parts.append("Historique récent :")
+        context_parts.append("Recent history:")
         for msg, agents_json, ts in recent_interactions:
             try:
                 agents = json.loads(agents_json)
@@ -180,7 +189,7 @@ async def get_student_context(question: str) -> str:
                 context_parts.append(f"  • [{ts[:10]}] \"{msg[:70]}\"")
 
     if not context_parts:
-        return "Première interaction — aucun historique disponible."
+        return "First interaction — no history available."
 
     return "\n".join(context_parts)
 

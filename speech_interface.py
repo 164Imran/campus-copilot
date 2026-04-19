@@ -34,7 +34,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     
     # URL Deepgram : Plus rapide et plus tolérant que ElevenLabs pour le live
-    dg_url = "wss://api.deepgram.com/v1/listen?language=fr&model=nova-2&smart_format=true"
+    dg_url = "wss://api.deepgram.com/v1/listen?language=en&model=nova-2&smart_format=true"
     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
     try:
