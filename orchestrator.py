@@ -384,8 +384,10 @@ async def run_orchestrator_stream(user_message: str, session_id: str = "default"
     if len(user_message) > MAX_MESSAGE_LENGTH:
         user_message = user_message[:MAX_MESSAGE_LENGTH]
 
-    memory_context = await get_student_context(user_message)
-    agents = decide_agents(user_message, session_id)
+    memory_context, agents = await asyncio.gather(
+        get_student_context(user_message),
+        decide_agents(user_message, session_id),
+    )
 
     full_response = ""
     

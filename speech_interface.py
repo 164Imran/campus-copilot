@@ -225,6 +225,36 @@ async def api_remove_event(event: EventRemove):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str = "default"
+
+class ChatResponse(BaseModel):
+    response: str
+    agents_called: list   # pour le frontend (afficher les icônes actives)
+    status_events: list = []  # progression des agents pour le frontend
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(req: ChatRequest):
+    result = await orchestrator.run_orchestrator(req.message, session_id=req.session_id)
+    return ChatResponse(
+        response=result["response"],
+        agents_called=result.get("agents_called", []),
+        status_events=result.get("status_events", []),
+    )
+
+@app.delete("/chat/history")
+async def clear_history(session_id: str = "default"):
+    """Remet la conversation à zéro."""
+    orchestrator.clear_conversation(session_id)
+    return {"status": "cleared", "session_id": session_id}
+
+@app.get("/memory")
+async def memory():
+    """Retourne l'état de la mémoire Cognee (utile pour la démo)."""
+    from cognee_memory import get_memory_summary
+    return get_memory_summary()
+
 # Serve the static React build if it exists
 if os.path.exists("campus-os/build"):
     app.mount("/", StaticFiles(directory="campus-os/build", html=True), name="static")
