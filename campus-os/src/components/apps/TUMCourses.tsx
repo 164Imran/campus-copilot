@@ -42,7 +42,7 @@ export default function TUMCourses() {
         if (data.summary) {
           setSummaryContent(data.summary);
         } else {
-          setSummaryContent("Erreur : Résumé introuvable. " + (data.error || ""));
+          setSummaryContent("Error: Summary not found. " + (data.error || ""));
         }
         setLoading(false);
       })
@@ -139,17 +139,17 @@ export default function TUMCourses() {
         }}>
           {activeFile ? (
             <div>
-              <h2 style={{ marginTop: 0, color: 'var(--text-main)' }}>Résumé : {activeFile.replace('.json', '')}</h2>
+              <h2 style={{ marginTop: 0, color: 'var(--text-main)' }}>Summary : {activeFile.replace('.json', '')}</h2>
               <div style={{ width: '100%', height: '1px', background: 'var(--stroke)', marginBottom: '16px' }} />
               <div className="markdown-container">
-                {loading ? 'Chargement du résumé...' : (
+                {loading ? 'Loading summary...': (
                   summaryContent ? <ReactMarkdown>{summaryContent}</ReactMarkdown> : 'Aucun contenu disponible.'
                 )}
               </div>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-subtle)', fontStyle: 'italic' }}>
-              Sélectionnez un document ci-dessus pour lire son résumé.
+                Select a document above to read its summary.
             </div>
           )}
         </div>
