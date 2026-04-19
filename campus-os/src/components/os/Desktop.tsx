@@ -1,4 +1,5 @@
 import { CSSProperties, MouseEvent, ReactElement, useRef, useState } from 'react';
+import { ReactElement } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import TUMCalendar from '../apps/TUMCalendar';
 import TUMCopilot from '../apps/TUMCopilot';
