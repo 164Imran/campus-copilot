@@ -93,7 +93,11 @@ export default function TUMVoice() {
       socketRef.current.close();
     }
 
-    const socket = new WebSocket('ws://localhost:8000/ws/stream');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname === 'localhost' && window.location.port === '3000' 
+      ? 'localhost:8000' 
+      : window.location.host;
+    const socket = new WebSocket(`${protocol}//${host}/ws/stream`);
     socket.binaryType = "blob";
     socketRef.current = socket;
 
