@@ -9,7 +9,7 @@ export default function MenuBar() {
   useEffect(() => {
     const update = () => {
       const now = new Date();
-      setTimeLabel(now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+      setTimeLabel(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
       setDayLabel(
         now.toLocaleDateString('en-US', {
           weekday: 'short',
@@ -33,7 +33,7 @@ export default function MenuBar() {
           className="menubar-button menubar-back"
           onClick={() => navigate('/')}
         >
-          Bureau
+          Desktop
         </button>
       </div>
       <div className="menubar-right">

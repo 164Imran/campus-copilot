@@ -116,14 +116,14 @@ export default function TUMVoice() {
         mediaRecorder.start(250);
         setIsRecording(true);
       } catch (error) {
-        console.error("Erreur d'accès au micro", error);
+        console.error("Microphone access error", error);
       }
     };
 
     socket.onmessage = async (event) => {
       // CAS 1 : RÉCEPTION AUDIO (Binaire)
       if (event.data instanceof Blob) {
-        console.log("🔊 Audio reçu d'ElevenLabs");
+        console.log("🔊 Audio received from ElevenLabs");
         audioQueueRef.current.push(event.data);
         if (!isPlayingRef.current) {
           playNextAudio();
@@ -161,12 +161,12 @@ export default function TUMVoice() {
           }
         }
       } catch (e) {
-        console.error("Erreur de parsing JSON", e);
+        console.error("JSON parsing error", e);
       }
     };
 
     socket.onclose = () => {
-      console.log("WebSocket fermé");
+      console.log("WebSocket closed");
       stopRecording();
     };
   };
@@ -209,8 +209,8 @@ export default function TUMVoice() {
   return (
     <div className="app-shell" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '16px', height: '100%', overflowY: 'auto', padding: '20px', boxSizing: 'border-box' }}>
       <div style={{ textAlign: 'center', flexShrink: 0 }}>
-        <h2 style={{ margin: '0 0 4px 0' }}>Agent IA Vocal</h2>
-        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-subtle)' }}>Assistant vocal en mode demo, avec orb et etats d'ecoute/parole.</p>
+        <h2 style={{ margin: '0 0 4px 0' }}>AI Voice Agent</h2>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-subtle)' }}>Voice assistant in demo mode, with orb and listening/speaking states.</p>
       </div>
       
       <div 
@@ -229,7 +229,7 @@ export default function TUMVoice() {
         flexShrink: 0
       }}>
         {!isRecording && !sttText.final && !sttText.partial ? (
-          <span style={{ color: 'var(--text-subtle)', fontStyle: 'italic' }}>En attente de la voix...</span>
+          <span style={{ color: 'var(--text-subtle)', fontStyle: 'italic' }}>Waiting for voice...</span>
         ) : (
           <>
             <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{sttText.final}</span>
@@ -301,7 +301,7 @@ export default function TUMVoice() {
           flexShrink: 0
         }}
       >
-        {isRecording ? "Arrêter l'écoute" : "Démarrer l'écoute"}
+        {isRecording ? "Stop Listening" : "Start Listening"}
       </button>
     </div>
   );

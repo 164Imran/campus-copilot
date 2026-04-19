@@ -108,35 +108,35 @@ const SEED_MESSAGES: ChatMessage[] = [
     id: 'seed-1',
     role: 'user',
     content:
-      'Résume les points importants du polycopié « Systèmes d\'exploitation » pour la semaine prochaine.',
+      'Summarize the important points of the "Operating Systems" handout for next week.',
   },
   {
     id: 'seed-2',
     role: 'assistant',
     content:
-      "Voici l'essentiel : processus et threads, appels système, ordonnancement préemptif, mémoire virtuelle et pagination. Les exercices Moodle sur les diagrammes d'états sont recommandés avant le quiz.",
-    attachment: { name: 'Resume_OS_Week4.pdf', pages: '3 pages' },
+      "Here are the essentials: processes and threads, system calls, preemptive scheduling, virtual memory, and paging. Moodle exercises on state diagrams are recommended before the quiz.",
+    attachment: { name: 'OS_Summary_Week4.pdf', pages: '3 pages' },
   },
   {
     id: 'seed-3',
     role: 'user',
-    content: 'Ajoute une question type examen sur la pagination.',
+    content: 'Add an exam-type question about paging.',
   },
 ];
 
 const MOCK_REPLIES: Array<{ text: string; attachment?: AttachmentMeta }> = [
   {
-    text: "Bien reçu. Pour la pagination, pense à expliquer la différence entre défaut de page et temps d'accès disque.",
+    text: "Understood. For paging, remember to explain the difference between a page fault and disk access time.",
   },
   {
-    text: "Je peux t'aider à structurer une fiche : intro, définitions, exemple avec TLB, pièges fréquents.",
-    attachment: { name: 'Fiche_Pagination.pdf', pages: '2 pages' },
+    text: "I can help you structure a study sheet: intro, definitions, example with TLB, common pitfalls.",
+    attachment: { name: 'Paging_Sheet.pdf', pages: '2 pages' },
   },
   {
-    text: "Si tu veux, envoie le sujet exact du partiel et j'adapte le niveau de détail.",
+    text: "If you want, send me the exact topic of the midterm and I'll adapt the level of detail.",
   },
   {
-    text: "Astuce : entraîne-toi à estimer le nombre de défauts de page pour une chaîne de références donnée.",
+    text: "Tip: practice estimating the number of page faults for a given reference string.",
   },
 ];
 
@@ -218,7 +218,7 @@ export default function TUMCopilot() {
       next.add(messageId);
       return next;
     });
-    showHint('Téléchargement simulé — intégration fichier à venir.');
+    showHint('Simulated download — file integration coming soon.');
   };
 
   return (
@@ -262,7 +262,7 @@ export default function TUMCopilot() {
                         downloadedIds.has(msg.id) ? 'copilot-attachment-action--done' : ''
                       }`}
                       aria-label={
-                        downloadedIds.has(msg.id) ? 'Téléchargé' : 'Télécharger'
+                        downloadedIds.has(msg.id) ? 'Downloaded' : 'Download'
                       }
                       onClick={() => onDownload(msg.id)}
                     >
@@ -309,7 +309,7 @@ export default function TUMCopilot() {
                 className={`copilot-input-plus ${attachMenuOpen ? 'copilot-input-plus--open' : ''}`}
                 aria-expanded={attachMenuOpen}
                 aria-haspopup="menu"
-                aria-label="Plus d’options"
+                aria-label="More options"
                 onClick={() => setAttachMenuOpen((o) => !o)}
               >
                 <IconPlus />
@@ -330,10 +330,10 @@ export default function TUMCopilot() {
                       className="copilot-attach-menu-item"
                       onClick={() => {
                         setAttachMenuOpen(false);
-                        showHint('Import de fichier — bientôt disponible.');
+                        showHint('File import — coming soon.');
                       }}
                     >
-                      Importer un fichier
+                      Import file
                     </button>
                     <button
                       type="button"
@@ -341,10 +341,10 @@ export default function TUMCopilot() {
                       className="copilot-attach-menu-item"
                       onClick={() => {
                         setAttachMenuOpen(false);
-                        showHint('Capture — bientôt disponible.');
+                        showHint('Capture — coming soon.');
                       }}
                     >
-                      Prendre une photo
+                      Take a photo
                     </button>
                   </motion.div>
                 )}
@@ -366,7 +366,7 @@ export default function TUMCopilot() {
                 <button
                   type="button"
                   className="copilot-input-send"
-                  aria-label="Envoyer"
+                  aria-label="Send"
                   onClick={send}
                   disabled={isTyping}
                 >
@@ -377,23 +377,23 @@ export default function TUMCopilot() {
                   <button
                     type="button"
                     className="copilot-input-icon"
-                    aria-label="Rechercher"
-                    onClick={() => showHint('Recherche dans la conversation — bientôt.')}
+                    aria-label="Search"
+                    onClick={() => showHint('Search in conversation — soon.')}
                   >
                     <IconSearch />
                   </button>
                   <button
                     type="button"
                     className="copilot-input-icon"
-                    aria-label="Pièce jointe"
-                    onClick={() => showHint('Pièces jointes — utilise le menu + ou ici bientôt.')}
+                    aria-label="Attachment"
+                    onClick={() => showHint('Attachments — use the + menu or here soon.')}
                   >
                     <IconPaperclip />
                   </button>
                   <button
                     type="button"
                     className="copilot-input-icon"
-                    aria-label="Ouvrir TUM Voice"
+                    aria-label="Open TUM Voice"
                     onClick={() => openWindow('voice')}
                     style={{ color: 'var(--tahoe-accent)' }}
                   >

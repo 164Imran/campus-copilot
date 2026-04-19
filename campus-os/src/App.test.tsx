@@ -5,7 +5,7 @@ import { AppRoutes } from './App';
 
 test('renders desktop shell', () => {
   render(
-    <MemoryRouter initialEntries={['/os']}>
+    <MemoryRouter initialEntries={['/']}>
       <AppRoutes />
     </MemoryRouter>
   );

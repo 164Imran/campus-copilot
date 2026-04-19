@@ -251,16 +251,43 @@ export default function TUMCalendar() {
               <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, textAlign: 'center', color: '#000' }}>New Event</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 700, color: '#86868B', marginLeft: '4px' }}>EVENT TITLE</label>
-                <input type="text" placeholder="Lecture, Meeting, etc." required value={newEvent.summary} onChange={e => setNewEvent({ ...newEvent, summary: e.target.value })} style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #E5E5E7', background: '#F5F5F7', fontSize: '14px', outline: 'none', color: '#000' }} />
+                <input 
+                  type="text" 
+                  placeholder="Lecture, Meeting, etc." 
+                  required 
+                  value={newEvent.summary} 
+                  onChange={e => setNewEvent({ ...newEvent, summary: e.target.value })} 
+                  onInvalid={e => (e.target as HTMLInputElement).setCustomValidity('Please fill out this field')}
+                  onInput={e => (e.target as HTMLInputElement).setCustomValidity('')}
+                  style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #E5E5E7', background: '#F5F5F7', fontSize: '14px', outline: 'none', color: '#000' }} 
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', fontWeight: 700, color: '#86868B', marginLeft: '4px' }}>START TIME</label>
-                  <input type="datetime-local" required value={newEvent.start_time} onChange={e => setNewEvent({ ...newEvent, start_time: e.target.value })} style={{ padding: '10px 12px', borderRadius: '12px', border: '1px solid #E5E5E7', background: '#F5F5F7', fontSize: '13px', outline: 'none', color: '#000' }} />
+                  <input 
+                    type="datetime-local" 
+                    placeholder="dd/mm/aaaa"
+                    required 
+                    value={newEvent.start_time} 
+                    onChange={e => setNewEvent({ ...newEvent, start_time: e.target.value })} 
+                    onInvalid={e => (e.target as HTMLInputElement).setCustomValidity('Please fill out this field')}
+                    onInput={e => (e.target as HTMLInputElement).setCustomValidity('')}
+                    style={{ padding: '10px 12px', borderRadius: '12px', border: '1px solid #E5E5E7', background: '#F5F5F7', fontSize: '13px', outline: 'none', color: '#000' }} 
+                  />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', fontWeight: 700, color: '#86868B', marginLeft: '4px' }}>END TIME</label>
-                  <input type="datetime-local" required value={newEvent.end_time} onChange={e => setNewEvent({ ...newEvent, end_time: e.target.value })} style={{ padding: '10px 12px', borderRadius: '12px', border: '1px solid #E5E5E7', background: '#F5F5F7', fontSize: '13px', outline: 'none', color: '#000' }} />
+                  <input 
+                    type="datetime-local" 
+                    placeholder="dd/mm/aaaa"
+                    required 
+                    value={newEvent.end_time} 
+                    onChange={e => setNewEvent({ ...newEvent, end_time: e.target.value })} 
+                    onInvalid={e => (e.target as HTMLInputElement).setCustomValidity('Please fill out this field')}
+                    onInput={e => (e.target as HTMLInputElement).setCustomValidity('')}
+                    style={{ padding: '10px 12px', borderRadius: '12px', border: '1px solid #E5E5E7', background: '#F5F5F7', fontSize: '13px', outline: 'none', color: '#000' }} 
+                  />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
