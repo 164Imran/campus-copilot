@@ -26,9 +26,9 @@ export default function Dock() {
     const rect = element.getBoundingClientRect();
     const itemCenter = rect.left + rect.width / 2;
     const distance = Math.abs(cursorX - itemCenter);
-    const influence = Math.max(0, 1 - distance / 140);
-    const scale = 1 + influence * 0.42;
-    const translateY = -influence * 12;
+    const influence = Math.max(0, 1 - distance / 92);
+    const scale = 1 + influence * 0.16;
+    const translateY = -influence * 5;
 
     return {
       transform: `translateY(${translateY}px) scale(${scale})`,

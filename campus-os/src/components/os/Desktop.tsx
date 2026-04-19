@@ -36,9 +36,9 @@ export default function Desktop() {
     const rect = element.getBoundingClientRect();
     const itemCenterY = rect.top + rect.height / 2;
     const distance = Math.abs(cursorY - itemCenterY);
-    const influence = Math.max(0, 1 - distance / 130);
-    const scale = 1 + influence * 0.4;
-    const translateX = -influence * 12;
+    const influence = Math.max(0, 1 - distance / 88);
+    const scale = 1 + influence * 0.16;
+    const translateX = -influence * 5;
 
     return {
       transform: `translateX(${translateX}px) scale(${scale})`,
