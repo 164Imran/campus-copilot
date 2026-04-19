@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -6,18 +6,30 @@ import sys
 import datetime
 import json
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
+
 # Ajouter le dossier parent au path pour importer les agents
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from calendar_agent import sync_calendar, add_event, remove_event
 
+API_KEY = os.getenv("API_KEY")
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
+
+
+def require_api_key(x_api_key: str = Header(None)):
+    if not API_KEY or x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
 app = FastAPI()
 
-# Configuration CORS pour autoriser le front-end React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 class EventCreate(BaseModel):
@@ -30,7 +42,7 @@ class EventRemove(BaseModel):
     summary: str
     start_time: str
 
-@app.post("/api/calendar/sync")
+@app.post("/api/calendar/sync", dependencies=[Depends(require_api_key)])
 async def force_sync():
     """Force la synchronisation des sources (TUM, Salles, Manuel)."""
     try:
@@ -39,7 +51,7 @@ async def force_sync():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/calendar")
+@app.get("/api/calendar", dependencies=[Depends(require_api_key)])
 async def get_calendar():
     """Lit le fichier ICS et le convertit en JSON simple pour le front."""
     ics_path = os.path.join(os.path.dirname(__file__), "agent-calendar", "local_event.ics")
@@ -65,7 +77,7 @@ async def get_calendar():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/calendar/add")
+@app.post("/api/calendar/add", dependencies=[Depends(require_api_key)])
 async def create_event(event: EventCreate):
     """Appelle la fonction add_event de l'agent."""
     try:
@@ -79,7 +91,7 @@ async def create_event(event: EventCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/calendar/remove")
+@app.post("/api/calendar/remove", dependencies=[Depends(require_api_key)])
 async def delete_event(event: EventRemove):
     """Appelle la fonction remove_event de l'agent."""
     try:

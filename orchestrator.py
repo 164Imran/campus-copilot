@@ -251,17 +251,160 @@ async def run_orchestrator(user_message: str, session_id: str = "default") -> di
     }
 
 
-# ── CLI conversationnelle ──────────────────────────────────────────
+# ── CLI conversationnelle + commandes de test ─────────────────────
+HELP_TEXT = """
+Commandes disponibles :
+  fin                        quitter
+  /help                      afficher cette aide
+  /moodle                    lancer l'agent Moodle (login + résumés + RAG)
+  /room <demande>            lancer l'agent Room (réservation salle)
+  /agenda                    lancer l'agent Agenda (stub actuellement)
+  /courses                   lister tous les cours résumés en S3
+  /summary <course>          afficher les fichiers résumés d'un cours
+  /summary <course> <file>   afficher le résumé complet d'un fichier
+  /rag <course> <question>   poser une question RAG sur un cours
+  /compare <c1> | <c2> | <topic>   comparer un thème entre deux cours
+  <autre texte>              mode conversationnel normal (orchestrateur)
+"""
+
+
+def _print_courses():
+    from aws.s3_client import list_summaries
+    grouped = list_summaries()
+    if not grouped:
+        print("Aucun résumé en S3.")
+        return
+    print(f"\n{len(grouped)} cours avec résumés :")
+    for course, files in sorted(grouped.items()):
+        print(f"  • {course} ({len(files)} fichier{'s' if len(files) > 1 else ''})")
+
+
+def _print_summary_files(course: str):
+    from aws.s3_client import list_summaries
+    grouped = list_summaries()
+    files = grouped.get(course)
+    if not files:
+        print(f"Aucun résumé trouvé pour '{course}'. Utilise /courses pour voir la liste.")
+        return
+    print(f"\n{len(files)} fichier(s) dans '{course}' :")
+    for f in sorted(files):
+        print(f"  • {f.removesuffix('.json')}")
+
+
+def _print_summary(course: str, filename: str):
+    from aws.s3_client import get_summary
+    summary = get_summary(course, filename.removesuffix(".json"))
+    if not summary:
+        print(f"Résumé introuvable : {course}/{filename}")
+        return
+    print(f"\n─── {course} / {filename} ───\n")
+    print(summary)
+    print("\n───────────────\n")
+
+
+def _run_rag(course: str, question: str):
+    from aws.rag_builder import answer_question
+    print(f"\n[RAG] Recherche dans '{course}' pour : {question}")
+    try:
+        print(f"\n{answer_question(question, course)}\n")
+    except Exception as e:
+        print(f"✗ RAG échoué : {type(e).__name__}: {e}")
+
+
+def _run_compare(course1: str, course2: str, topic: str):
+    from aws.rag_builder import compare_courses
+    print(f"\n[RAG] Comparaison '{course1}' vs '{course2}' sur : {topic}")
+    try:
+        print(f"\n{compare_courses(topic, course1, course2)}\n")
+    except Exception as e:
+        print(f"✗ Compare échoué : {type(e).__name__}: {e}")
+
+
+def _run_moodle_sync():
+    fn = load_agent("moodle")
+    if not fn:
+        print("Agent Moodle indisponible.")
+        return
+    print("\n[Moodle] Lancement…")
+    try:
+        res = fn()
+        print(f"[Moodle] Terminé : {len(res)} résumé(s) généré(s).")
+    except Exception as e:
+        print(f"✗ Moodle échoué : {type(e).__name__}: {e}")
+
+
+def _run_room(msg: str):
+    fn = load_agent("room")
+    if not fn:
+        print("Agent Room indisponible.")
+        return
+    try:
+        res = fn(msg)
+        print(f"\n{res.get('message', res)}\n")
+    except Exception as e:
+        print(f"✗ Room échoué : {type(e).__name__}: {e}")
+
+
+def _run_agenda():
+    fn = load_agent("agenda")
+    if not fn:
+        print("Agent Agenda indisponible (stub).")
+        return
+    try:
+        print(fn([]))
+    except Exception as e:
+        print(f"✗ Agenda échoué : {type(e).__name__}: {e}")
+
+
 if __name__ == "__main__":
     async def _run_chat():
         sid = "cli-session"
-        print("Campus Co-Pilot — tape 'fin' pour quitter\n")
+        print("Campus Co-Pilot — /help pour les commandes, 'fin' pour quitter\n")
         while True:
             msg = input("Toi : ").strip()
             if not msg:
                 continue
-            if msg.lower() == "fin":
+            low = msg.lower()
+            if low == "fin":
                 break
+            if low in ("/help", "help", "?"):
+                print(HELP_TEXT)
+                continue
+            if low == "/courses":
+                _print_courses()
+                continue
+            if low == "/moodle":
+                _run_moodle_sync()
+                continue
+            if low == "/agenda":
+                _run_agenda()
+                continue
+            if low.startswith("/room "):
+                _run_room(msg[6:].strip())
+                continue
+            if low.startswith("/summary "):
+                parts = msg[9:].strip().split(maxsplit=1)
+                if len(parts) == 1:
+                    _print_summary_files(parts[0])
+                else:
+                    _print_summary(parts[0], parts[1])
+                continue
+            if low.startswith("/rag "):
+                parts = msg[5:].strip().split(maxsplit=1)
+                if len(parts) < 2:
+                    print("Usage : /rag <course> <question>")
+                    continue
+                _run_rag(parts[0], parts[1])
+                continue
+            if low.startswith("/compare "):
+                parts = [p.strip() for p in msg[9:].split("|")]
+                if len(parts) != 3:
+                    print("Usage : /compare <course1> | <course2> | <topic>")
+                    continue
+                _run_compare(parts[0], parts[1], parts[2])
+                continue
+
+            # Mode conversationnel par défaut
             result = await run_orchestrator(msg, session_id=sid)
             print(f"\nCo-Pilot : {result['response']}\n")
 

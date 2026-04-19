@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import datetime
 
 # Le client est maintenant dans agent-calendar/manage-calendar/
@@ -59,7 +60,7 @@ def sync_calendar():
     # 1. Base : Calendrier TUM
     if url:
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=30)
             cal = Calendar.from_ical(response.content)
         except Exception as e:
             print(f"Erreur téléchargement TUM: {e}")
@@ -82,7 +83,8 @@ def sync_calendar():
                     event.add('dtend', end_dt)
                     event.add('location', 'Library Main Campus')
                     cal.add_component(event)
-            except: pass
+            except Exception as e:
+                print(f"[calendar] reservation history parse failed: {e}")
 
     # 3. Ajout des événements manuels
     if os.path.exists(manual_path):
@@ -96,7 +98,8 @@ def sync_calendar():
                     event.add('dtend', datetime.datetime.fromisoformat(m['end_time']).replace(tzinfo=pytz.timezone("Europe/Berlin")))
                     event.add('location', m.get('location', 'N/A'))
                     cal.add_component(event)
-            except: pass
+            except Exception as e:
+                print(f"[calendar] manual events parse failed: {e}")
 
     with open(ics_path, 'wb') as f:
         f.write(cal.to_ical())
@@ -116,12 +119,13 @@ def add_event(summary: str, start_time: str, end_time: str, location: str = "N/A
     base_dir = os.path.dirname(os.path.abspath(__file__))
     manual_path = os.path.join(base_dir, "agent-calendar", "manual_events.json")
     
-    import json
     events = []
     if os.path.exists(manual_path):
         with open(manual_path, 'r') as f:
-            try: events = json.load(f)
-            except: pass
+            try:
+                events = json.load(f)
+            except Exception as e:
+                print(f"[calendar] manual events load failed: {e}")
             
     events.append({
         "summary": summary,

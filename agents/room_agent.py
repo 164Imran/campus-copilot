@@ -117,7 +117,8 @@ def book_study_room(booking_time: str, target_days_ahead: int) -> str:
 
     try:
         result = subprocess.run(
-            [sys.executable, "book.py"], cwd=engine_dir, capture_output=True, text=True
+            [sys.executable, "book.py"], cwd=engine_dir,
+            capture_output=True, text=True, timeout=120,
         )
         output = (result.stdout + result.stderr).lower()
         if result.returncode == 0 and ("success" in output or "successful" in output):
@@ -125,6 +126,8 @@ def book_study_room(booking_time: str, target_days_ahead: int) -> str:
             log_reservation(res_date, booking_time)
             return f"Succès: Réservation effectuée pour le {res_date} à {booking_time}."
         return f"Erreur: {result.stderr}\n{result.stdout}"
+    except subprocess.TimeoutExpired:
+        return "Erreur: la réservation a pris trop de temps (timeout 120s)."
     except Exception as e:
         return f"Erreur système: {str(e)}"
 
@@ -150,9 +153,12 @@ def cancel_study_room(target_date: str) -> str:
 
     try:
         result = subprocess.run(
-            [sys.executable, "cancel.py"], cwd=engine_dir, capture_output=True, text=True
+            [sys.executable, "cancel.py"], cwd=engine_dir,
+            capture_output=True, text=True, timeout=120,
         )
         return f"Succès: {result.stdout}" if result.returncode == 0 else f"Erreur: {result.stderr}\n{result.stdout}"
+    except subprocess.TimeoutExpired:
+        return "Erreur: l'annulation a pris trop de temps (timeout 120s)."
     except Exception as e:
         return f"Erreur système: {str(e)}"
 

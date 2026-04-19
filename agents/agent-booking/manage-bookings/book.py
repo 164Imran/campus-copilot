@@ -60,7 +60,7 @@ def main():
             else:
                 print(f"⚠️ Failed to book any slots for {time_['start']}-{time_['end']}")
         except Exception as e:
-            print(f"❌ Error booking slot {time_['start']}-{time_['end']}: {e}")
+            print(f"❌ Error booking slot {time_['start']}-{time_['end']}: {type(e).__name__}: {e}")
             break
 
 if __name__ == "__main__":

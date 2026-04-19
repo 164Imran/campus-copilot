@@ -32,6 +32,7 @@ def run_moodle_agent() -> list[dict]:
     from moodle.moodle_files import get_pdf_files
     from moodle.pdf_extractor import download_and_extract
     from aws.bedrock_client import summarize_lecture
+    from aws.rag_builder import store_document
     from aws.s3_client import (
         save_summary, get_summary,
         save_processed_files, get_processed_files,
@@ -103,6 +104,13 @@ def run_moodle_agent() -> list[dict]:
             # Step 6 — Save to S3
             s3_key = save_summary(course_name_safe, filename, summary)
             print(f"[Agent]   Saved to S3 : {s3_key}")
+
+            # Step 7 — Index for RAG (fail-soft: don't abort the pipeline)
+            try:
+                n = store_document(text, course_name_safe, filename)
+                print(f"[Agent]   Indexed for RAG ({n} chunks).")
+            except Exception as e:
+                print(f"[Agent]   WARNING RAG indexing failed for '{filename}': {type(e).__name__}: {e}")
 
             results.append({
                 "course":   course_name,
