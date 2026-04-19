@@ -5,6 +5,13 @@
 import '@testing-library/jest-dom';
 import { TextDecoder, TextEncoder } from 'util';
 
+jest.mock('react-markdown', () => ({
+  __esModule: true,
+  default: function ReactMarkdown() {
+    return null;
+  },
+}));
+
 if (typeof globalThis.TextEncoder === 'undefined') {
   globalThis.TextEncoder = TextEncoder as typeof globalThis.TextEncoder;
 }

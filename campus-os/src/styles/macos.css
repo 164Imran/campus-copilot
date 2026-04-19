@@ -89,6 +89,12 @@ button.menubar-button {
   margin-left: 2px;
 }
 
+.menubar-landing-context {
+  opacity: 0.82;
+  cursor: default;
+  pointer-events: none;
+}
+
 .desktop-icons {
   position: fixed;
   right: 24px;

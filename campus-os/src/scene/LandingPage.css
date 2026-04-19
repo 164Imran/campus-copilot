@@ -1,53 +1,232 @@
-/* imageStatic.png — 1920×1080. Ajuste ces % si la zone cliquable ne colle pas à l’écran. */
-.landing-page {
-  --screen-left: 39.6%;
-  --screen-top: 24.6%;
-  --screen-width: 20.9%;
-  --screen-height: 37.6%;
-
+/* Aligns with mac-login-portal layout; uses campus-os desktop wallpaper + glass tokens from macos.css */
+.landing {
   position: fixed;
   inset: 0;
+  overflow: hidden;
+  color: rgba(15, 25, 43, 0.95);
+}
+
+.landing__wallpaper {
+  z-index: 0;
+}
+
+.landing__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.06) 0%,
+    transparent 42%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
+}
+
+.landing__hero {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 72px 24px 0;
+}
+
+@media (min-width: 768px) {
+  .landing__hero {
+    padding-top: 96px;
+  }
+}
+
+.landing__date {
+  margin: 0 0 16px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: rgba(22, 35, 58, 0.72);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.45);
+}
+
+@media (min-width: 768px) {
+  .landing__date {
+    font-size: 16px;
+  }
+}
+
+.landing__title {
   margin: 0;
-  background: #0c0b0a;
+  max-width: 46rem;
+  font-family:
+    'Instrument Serif',
+    'Iowan Old Style',
+    'Apple Garamond',
+    ui-serif,
+    Georgia,
+    serif;
+  font-weight: 400;
+  font-size: clamp(2.5rem, 8vw, 5.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.45);
+}
+
+.landing__title-line {
+  display: block;
+}
+
+.landing__tagline {
+  display: block;
+  margin-top: 0.45rem;
+  min-height: 3.25rem;
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: clamp(1.1rem, 3.4vw, 1.85rem);
+  line-height: 1.28;
+  letter-spacing: -0.012em;
+}
+
+@media (min-width: 768px) {
+  .landing__tagline {
+    margin-top: 0.65rem;
+    min-height: 3.5rem;
+  }
+}
+
+.landing__title-em {
+  display: inline-block;
+  font-style: italic;
+  opacity: 0.92;
+  color: rgba(22, 35, 58, 0.88);
+  animation: landing-tagline-in 0.7s ease forwards;
+}
+
+@keyframes landing-tagline-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.92;
+    transform: translateY(0);
+  }
+}
+
+.landing__card {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 56px;
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) {
+  .landing__card {
+    margin-top: 88px;
+  }
+}
+
+.landing__avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.55), rgba(200, 220, 255, 0.35));
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.55),
+    0 12px 32px rgba(21, 36, 63, 0.22);
 }
 
-.landing-page__frame {
-  position: relative;
-  width: min(100vw, calc(100vh * 1920 / 1080));
-  height: min(100vh, calc(100vw * 1080 / 1920));
-  max-width: 100vw;
-  max-height: 100vh;
+.landing__avatar-initials {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(15, 28, 48, 0.88);
 }
 
-.landing-page__img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  user-select: none;
-  pointer-events: none;
+.landing__user-name {
+  margin: 16px 0 0;
+  font-size: 18px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.45);
 }
 
-.landing-page__screen {
+.landing__login-btn {
+  margin-top: 20px;
+  padding: 10px 32px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(15, 25, 43, 0.95);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 4px 18px rgba(21, 36, 63, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.landing__login-btn:hover {
+  background: #fff;
+  box-shadow:
+    0 8px 28px rgba(21, 36, 63, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transform: scale(1.03);
+}
+
+.landing__login-btn:active {
+  transform: scale(0.97);
+}
+
+.landing__switch {
+  margin-top: 20px;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: rgba(31, 45, 67, 0.55);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.landing__switch:hover {
+  color: rgba(15, 25, 43, 0.88);
+}
+
+.landing__power {
   position: absolute;
-  left: var(--screen-left);
-  top: var(--screen-top);
-  width: var(--screen-width);
-  height: var(--screen-height);
-  overflow: hidden;
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 35%);
+  bottom: 24px;
+  right: 24px;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  color: rgba(22, 35, 58, 0.82);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
 }
 
-.landing-page__os-frame {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  background: #1a1a1c;
+.landing__power:hover {
+  color: rgba(12, 22, 40, 0.95);
+  transform: scale(1.05);
 }
