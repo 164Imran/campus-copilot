@@ -75,42 +75,63 @@ async def websocket_endpoint(websocket: WebSocket):
                                 
                                 async def process_orchestrator_and_tts(text_input):
                                     try:
-                                        result = await orchestrator.run_orchestrator(text_input, session_id="voice-session")
-                                        full_text = result["response"]
-                                        
-                                        import re
-                                        sentences = re.split(r'([.!?\n:])', full_text)
-                                        
+                                        full_text = ""
                                         combined_sentences = []
                                         temp_sentence = ""
-                                        for part in sentences:
-                                            temp_sentence += part
-                                            if any(p in part for p in ['.', '!', '?', '\n', ':']):
-                                                if temp_sentence.strip():
-                                                    combined_sentences.append(temp_sentence.strip())
-                                                temp_sentence = ""
+                                        import re
+                                        
+                                        async for chunk in orchestrator.run_orchestrator_stream(text_input, session_id="voice-session"):
+                                            full_text += chunk
+                                            temp_sentence += chunk
+                                            
+                                            try:
+                                                await websocket.send_json({
+                                                    "type": "agent", 
+                                                    "text": full_text,
+                                                    "sentences": combined_sentences + ([temp_sentence.strip()] if temp_sentence.strip() else [])
+                                                })
+                                            except Exception:
+                                                return
+                                            
+                                            while any(p in temp_sentence for p in ['.', '!', '?', '\n', ':']):
+                                                match = re.search(r'([.!?\n:])', temp_sentence)
+                                                if match:
+                                                    idx = match.end()
+                                                    sentence_to_play = temp_sentence[:idx].strip()
+                                                    temp_sentence = temp_sentence[idx:]
+                                                    
+                                                    if sentence_to_play:
+                                                        combined_sentences.append(sentence_to_play)
+                                                        print(f"🔊 Génération audio pour : {sentence_to_play}")
+                                                        audio_bytes = await asyncio.to_thread(generate_audio_bytes, sentence_to_play)
+                                                        if audio_bytes:
+                                                            try:
+                                                                await websocket.send_bytes(audio_bytes)
+                                                            except Exception as e:
+                                                                print(f"Client déconnecté pendant TTS: {e}")
+                                                                return
+                                                else:
+                                                    break
+                                                    
                                         if temp_sentence.strip():
-                                            combined_sentences.append(temp_sentence.strip())
-                                            
-                                        try:
-                                            await websocket.send_json({
-                                                "type": "agent", 
-                                                "text": full_text,
-                                                "sentences": combined_sentences
-                                            })
-                                        except Exception:
-                                            return
-                                            
-                                        for sentence in combined_sentences:
-                                            if sentence.strip():
-                                                print(f"🔊 Génération audio pour : {sentence.strip()}")
-                                                audio_bytes = await asyncio.to_thread(generate_audio_bytes, sentence.strip())
-                                                if audio_bytes:
-                                                    try:
-                                                        await websocket.send_bytes(audio_bytes)
-                                                    except Exception as e:
-                                                        print(f"Client déconnecté pendant TTS: {e}")
-                                                        break
+                                            sentence_to_play = temp_sentence.strip()
+                                            combined_sentences.append(sentence_to_play)
+                                            try:
+                                                await websocket.send_json({
+                                                    "type": "agent", 
+                                                    "text": full_text,
+                                                    "sentences": combined_sentences
+                                                })
+                                            except Exception:
+                                                pass
+                                            print(f"🔊 Génération audio pour : {sentence_to_play}")
+                                            audio_bytes = await asyncio.to_thread(generate_audio_bytes, sentence_to_play)
+                                            if audio_bytes:
+                                                try:
+                                                    await websocket.send_bytes(audio_bytes)
+                                                except Exception:
+                                                    pass
+
                                     except Exception as e:
                                         print(f"Erreur avec l'Orchestrateur: {e}")
 
