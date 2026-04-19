@@ -174,30 +174,63 @@ export default function TUMCopilot() {
     setIsTyping(true);
     setStatusEvents([]);
 
+    const assistantId = uid();
+    let accumulated = '';
+
     try {
-      const res = await fetch(`${API_BASE}/chat`, {
+      const res = await fetch(`${API_BASE}/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, session_id: sessionId.current }),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: { response: string; agents_called: string[]; status_events: StatusEvent[] } = await res.json();
 
-      setStatusEvents(data.status_events ?? []);
-      setMessages((prev) => [
-        ...prev,
-        { id: uid(), role: 'assistant', content: data.response },
-      ]);
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      // Insert empty assistant bubble immediately so tokens appear live
+      setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
+      setIsTyping(false);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = JSON.parse(line.slice(6));
+
+          if (payload.type === 'status') {
+            setStatusEvents((prev) => {
+              const next = prev.filter((e) => e.agent !== payload.agent);
+              return [...next, { agent: payload.agent, status: payload.status, label: payload.label }];
+            });
+          } else if (payload.type === 'token') {
+            accumulated += payload.text;
+            const snap = accumulated;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: snap } : m))
+            );
+          }
+        }
+      }
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uid(),
-          role: 'assistant',
-          content: '⚠️ Impossible de joindre le serveur. Vérifie que le backend tourne sur le port 8000.',
-        },
-      ]);
+      setMessages((prev) => {
+        const exists = prev.find((m) => m.id === assistantId);
+        if (exists) {
+          return prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, content: '⚠️ Impossible de joindre le serveur. Vérifie que le backend tourne sur le port 8000.' }
+              : m
+          );
+        }
+        return [...prev, { id: assistantId, role: 'assistant', content: '⚠️ Impossible de joindre le serveur. Vérifie que le backend tourne sur le port 8000.' }];
+      });
     } finally {
       setIsTyping(false);
     }
