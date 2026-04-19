@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BUCKET = os.getenv("S3_BUCKET_NAME")
+BUCKET = os.getenv("S3_BUCKET_NAME", "campus-copilot")
 
 
 def get_s3_client():

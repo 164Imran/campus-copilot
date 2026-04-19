@@ -1,3 +1,37 @@
 :root {
   color-scheme: dark;
 }
+
+/* Markdown Styles for Summaries */
+.markdown-container {
+  color: var(--text-main);
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+.markdown-container h1, .markdown-container h2, .markdown-container h3 {
+  color: var(--tahoe-accent);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.markdown-container p {
+  margin-bottom: 1em;
+}
+.markdown-container ul, .markdown-container ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+.markdown-container li {
+  margin-bottom: 0.5em;
+}
+.markdown-container strong {
+  font-weight: 600;
+  color: var(--text-main);
+}
+.markdown-container code {
+  background: var(--glass-2);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+  border: 1px solid var(--stroke);
+}

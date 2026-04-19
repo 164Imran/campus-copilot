@@ -47,7 +47,7 @@ export default function TUMCalendar() {
       await fetch('http://localhost:8000/api/calendar/sync', { method: 'POST' });
       const response = await fetch('http://localhost:8000/api/calendar');
       const data = await response.json();
-      setEvents(data);
+      setEvents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
