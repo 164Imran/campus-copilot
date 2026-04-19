@@ -5,6 +5,10 @@ import os
 import sys
 import datetime
 import json
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement (.env) depuis la racine du projet
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 # Ajouter le dossier parent au path pour importer les agents
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -55,39 +59,46 @@ async def get_calendar():
             events = []
             for component in gcal.walk():
                 if component.name == "VEVENT":
+                    # Extraction simplifiée des dates
+                    start = component.get('dtstart').dt
+                    end = component.get('dtend').dt
+                    
+                    # Convertir en string ISO
+                    start_str = start.isoformat() if hasattr(start, 'isoformat') else str(start)
+                    end_str = end.isoformat() if hasattr(end, 'isoformat') else str(end)
+
                     events.append({
                         "summary": str(component.get('summary')),
-                        "start": component.get('dtstart').dt.isoformat(),
-                        "end": component.get('dtend').dt.isoformat(),
+                        "start": start_str,
+                        "end": end_str,
                         "location": str(component.get('location', 'N/A'))
                     })
-            return sorted(events, key=lambda x: x['start'])
+            return events
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # En cas d'erreur de lecture, on renvoie une liste vide ou l'erreur
+        return {"error": str(e), "path": ics_path}
 
 @app.post("/api/calendar/add")
-async def create_event(event: EventCreate):
-    """Appelle la fonction add_event de l'agent."""
+async def api_add_event(event: EventCreate):
     try:
-        result = add_event.invoke({
+        res = add_event.invoke({
             "summary": event.summary,
             "start_time": event.start_time,
             "end_time": event.end_time,
             "location": event.location
         })
-        return {"status": "success", "message": result}
+        return {"status": "added", "result": res}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/calendar/remove")
-async def delete_event(event: EventRemove):
-    """Appelle la fonction remove_event de l'agent."""
+async def api_remove_event(event: EventRemove):
     try:
-        result = remove_event.invoke({
+        res = remove_event.invoke({
             "summary": event.summary,
             "start_time": event.start_time
         })
-        return {"status": "success", "message": result}
+        return {"status": "removed", "result": res}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

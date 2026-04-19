@@ -1,7 +1,7 @@
 import os
 import json
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -11,6 +11,9 @@ import orchestrator
 from aws import s3_client as s3
 from pydantic import BaseModel
 import sys
+
+# Ajouter le dossier agents au path pour les imports
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "agents"))
 from agents.calendar_agent import sync_calendar, add_event, remove_event
 
 load_dotenv()
@@ -26,8 +29,6 @@ app.add_middleware(
 
 # REMPLACE PAR TA CLÉ DEEPGRAM (Gratiut 200$)
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
-
-# L'appel à l'Orchestrateur se fera directement dans la fonction send_to_dg
 
 @app.websocket("/ws/stream")
 async def websocket_endpoint(websocket: WebSocket):
@@ -55,10 +56,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                 break # Le client est déconnecté
 
                             if is_final:
-                                # La phrase est finie, on l'affiche mais on attend l'arrêt pour envoyer à Bedrock
                                 pass
                 except websockets.exceptions.ConnectionClosed:
-                    print("Deepgram a fermé la connexion (timeout attendu après la fin de l'audio).")
+                    print("Deepgram a fermé la connexion.")
                 except Exception as e:
                     print(f"Info receive_from_dg: {e}")
 
@@ -78,11 +78,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                         result = await orchestrator.run_orchestrator(text_input, session_id="voice-session")
                                         full_text = result["response"]
                                         
-                                        # Découper en phrases pour le TTS
                                         import re
                                         sentences = re.split(r'([.!?\n:])', full_text)
                                         
-                                        # Recombiner les phrases avec leur ponctuation
                                         combined_sentences = []
                                         temp_sentence = ""
                                         for part in sentences:
@@ -94,7 +92,6 @@ async def websocket_endpoint(websocket: WebSocket):
                                         if temp_sentence.strip():
                                             combined_sentences.append(temp_sentence.strip())
                                             
-                                        # Envoyer tout le texte d'un coup au frontend AVEC les phrases découpées
                                         try:
                                             await websocket.send_json({
                                                 "type": "agent", 
@@ -104,7 +101,6 @@ async def websocket_endpoint(websocket: WebSocket):
                                         except Exception:
                                             return
                                             
-                                        # Générer l'audio phrase par phrase et l'envoyer de façon synchrone
                                         for sentence in combined_sentences:
                                             if sentence.strip():
                                                 print(f"🔊 Génération audio pour : {sentence.strip()}")
@@ -118,9 +114,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                     except Exception as e:
                                         print(f"Erreur avec l'Orchestrateur: {e}")
 
-                                # Démarrer le traitement en arrière-plan sans bloquer la réception
                                 asyncio.create_task(process_orchestrator_and_tts(data["text"]))
-                                
                 except Exception as e:
                     print(f"Info send_to_dg: {e}")
 
@@ -148,15 +142,16 @@ class EventRemove(BaseModel):
 
 @app.post("/api/calendar/sync")
 async def force_sync():
+    """Force la synchronisation des sources (TUM, Salles, Manuel)."""
     try:
         sync_calendar.invoke({})
         return {"status": "synchronized"}
     except Exception as e:
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/calendar")
 async def get_calendar():
+    """Lit le fichier ICS et le convertit en JSON simple pour le front."""
     ics_path = os.path.join(os.path.dirname(__file__), "agents", "agent-calendar", "local_event.ics")
     if not os.path.exists(ics_path):
         sync_calendar.invoke({})
@@ -168,44 +163,46 @@ async def get_calendar():
             events = []
             for component in gcal.walk():
                 if component.name == "VEVENT":
+                    start = component.get('dtstart').dt
+                    end = component.get('dtend').dt
+                    
+                    start_str = start.isoformat() if hasattr(start, 'isoformat') else str(start)
+                    end_str = end.isoformat() if hasattr(end, 'isoformat') else str(end)
+
                     events.append({
                         "summary": str(component.get('summary')),
-                        "start": component.get('dtstart').dt.isoformat(),
-                        "end": component.get('dtend').dt.isoformat(),
+                        "start": start_str,
+                        "end": end_str,
                         "location": str(component.get('location', 'N/A'))
                     })
             return sorted(events, key=lambda x: x['start'])
     except Exception as e:
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/calendar/add")
-async def create_event(event: EventCreate):
+async def api_add_event(event: EventCreate):
     try:
-        result = add_event.invoke({
+        res = add_event.invoke({
             "summary": event.summary,
             "start_time": event.start_time,
             "end_time": event.end_time,
             "location": event.location
         })
-        return {"status": "success", "message": result}
+        return {"status": "success", "result": res}
     except Exception as e:
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/calendar/remove")
-async def delete_event(event: EventRemove):
+async def api_remove_event(event: EventRemove):
     try:
-        result = remove_event.invoke({
+        # L'outil remove_event a été corrigé pour être plus robuste sur les dates
+        res = remove_event.invoke({
             "summary": event.summary,
             "start_time": event.start_time
         })
-        return {"status": "success", "message": result}
+        return {"status": "removed", "result": res}
     except Exception as e:
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
-
-import os
 
 # Serve the static React build if it exists
 if os.path.exists("campus-os/build"):
@@ -213,5 +210,5 @@ if os.path.exists("campus-os/build"):
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Tentative de lancement du serveur...")
+    print("🚀 Lancement de Speech Interface avec API Calendrier...")
     uvicorn.run(app, host="0.0.0.0", port=8000)

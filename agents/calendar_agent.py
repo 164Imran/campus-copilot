@@ -1,6 +1,10 @@
 import os
 import sys
 import datetime
+import json
+import requests
+import pytz
+from icalendar import Calendar, Event
 
 # Le client est maintenant dans agent-calendar/manage-calendar/
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -50,11 +54,6 @@ def sync_calendar():
     history_path = os.path.join(base_dir, "agent-booking", "reservation_history.json")
     manual_path = os.path.join(base_dir, "agent-calendar", "manual_events.json")
     url = os.getenv("TUM_ICAL_URL")
-
-    from icalendar import Calendar, Event
-    import pytz
-    import json
-    import requests
 
     # 1. Base : Calendrier TUM
     if url:
@@ -116,7 +115,6 @@ def add_event(summary: str, start_time: str, end_time: str, location: str = "N/A
     base_dir = os.path.dirname(os.path.abspath(__file__))
     manual_path = os.path.join(base_dir, "agent-calendar", "manual_events.json")
     
-    import json
     events = []
     if os.path.exists(manual_path):
         with open(manual_path, 'r') as f:
@@ -151,11 +149,27 @@ def remove_event(summary: str, start_time: str) -> str:
     with open(manual_path, 'r') as f:
         events = json.load(f)
     
-    # Filtrer pour garder tout SAUF l'événement cible
-    new_events = [e for e in events if not (e['summary'] == summary and e['start_time'] == start_time)]
+    # Convertir le start_time cible en datetime pour une comparaison robuste (ignore les secondes/microsecondes si besoin)
+    try:
+        # On remplace Z par +00:00 pour fromisoformat
+        target_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+    except Exception:
+        return f"Format de date invalide : {start_time}"
+    
+    def matches(e):
+        if e['summary'] != summary:
+            return False
+        try:
+            event_dt = datetime.datetime.fromisoformat(e['start_time'].replace('Z', '+00:00'))
+            # On compare les timestamps (plus robuste que les strings)
+            return event_dt.timestamp() == target_dt.timestamp()
+        except Exception:
+            return e['start_time'] == start_time
+
+    new_events = [e for e in events if not matches(e)]
     
     if len(new_events) == len(events):
-        return f"Événement '{summary}' non trouvé."
+        return f"Événement '{summary}' à {start_time} non trouvé dans manual_events.json."
     
     with open(manual_path, 'w') as f:
         json.dump(new_events, f, indent=4)
@@ -173,18 +187,5 @@ if __name__ == "__main__":
     env_path = os.path.join(project_root, ".env")
     load_dotenv(env_path)
     
-    # Test d'ajout manuel
-    # print(add_event.invoke({
-    #     "summary": "Mariage",
-    #     "start_time": "2026-04-22T12:00:00",
-    #     "end_time": "2026-04-22T13:30:00",
-    #     "location": "Mensa"
-    # }))
-    
-    # Pour appeler un outil décoré avec @tool, on utilise .invoke()
-    # print(get_user_schedule.invoke({"days_ahead": 3}))
-    
     # Test de synchronisation complète
-    remove_event.invoke({"summary": "Déjeuner avec le Professeur", "start_time": "2026-04-22T12:00:00"})
     print(sync_calendar.invoke({}))
-
