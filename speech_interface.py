@@ -3,13 +3,26 @@ import json
 import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import websockets
 from text_speech import generate_audio_bytes
 import orchestrator
+from aws import s3_client as s3
+from pydantic import BaseModel
+import sys
+from agents.calendar_agent import sync_calendar, add_event, remove_event
 
 load_dotenv()
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # REMPLACE PAR TA CLÉ DEEPGRAM (Gratiut 200$)
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
@@ -115,6 +128,82 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"❌ Erreur : {e}")
 
+@app.get("/api/summary/{course}/{filename}")
+async def get_summary_api(course: str, filename: str):
+    s3_key = f"summaries/{course}/{filename}"
+    data = s3._get_json(s3_key)
+    if data and "summary" in data:
+        return {"summary": data["summary"]}
+    return {"error": "Summary not found"}
+
+class EventCreate(BaseModel):
+    summary: str
+    start_time: str
+    end_time: str
+    location: str = "N/A"
+
+class EventRemove(BaseModel):
+    summary: str
+    start_time: str
+
+@app.post("/api/calendar/sync")
+async def force_sync():
+    try:
+        sync_calendar.invoke({})
+        return {"status": "synchronized"}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/calendar")
+async def get_calendar():
+    ics_path = os.path.join(os.path.dirname(__file__), "agents", "agent-calendar", "local_event.ics")
+    if not os.path.exists(ics_path):
+        sync_calendar.invoke({})
+    
+    from icalendar import Calendar
+    try:
+        with open(ics_path, 'rb') as f:
+            gcal = Calendar.from_ical(f.read())
+            events = []
+            for component in gcal.walk():
+                if component.name == "VEVENT":
+                    events.append({
+                        "summary": str(component.get('summary')),
+                        "start": component.get('dtstart').dt.isoformat(),
+                        "end": component.get('dtend').dt.isoformat(),
+                        "location": str(component.get('location', 'N/A'))
+                    })
+            return sorted(events, key=lambda x: x['start'])
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/calendar/add")
+async def create_event(event: EventCreate):
+    try:
+        result = add_event.invoke({
+            "summary": event.summary,
+            "start_time": event.start_time,
+            "end_time": event.end_time,
+            "location": event.location
+        })
+        return {"status": "success", "message": result}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/calendar/remove")
+async def delete_event(event: EventRemove):
+    try:
+        result = remove_event.invoke({
+            "summary": event.summary,
+            "start_time": event.start_time
+        })
+        return {"status": "success", "message": result}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
 
 import os
 
