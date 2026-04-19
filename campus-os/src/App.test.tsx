@@ -11,8 +11,11 @@ test('renders lock screen at /', () => {
   );
   const main = screen.getByRole('main');
   expect(main).toHaveClass('landing');
-  expect(screen.getByText('TUM OS')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+  expect(screen.getAllByText('TUM OS').length).toBeGreaterThanOrEqual(1);
+  expect(screen.getByText(/Welcome to TUM/)).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /login/i, hidden: true })
+  ).toBeInTheDocument();
 });
 
 test('renders desktop shell at /desktop', () => {
