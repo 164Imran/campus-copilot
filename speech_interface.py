@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import websockets
 from text_speech import generate_audio_bytes
@@ -114,6 +115,12 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"❌ Erreur : {e}")
 
+
+import os
+
+# Serve the static React build if it exists
+if os.path.exists("campus-os/build"):
+    app.mount("/", StaticFiles(directory="campus-os/build", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
