@@ -121,7 +121,7 @@ const SEED_MESSAGES: ChatMessage[] = [
   {
     id: 'seed-welcome',
     role: 'assistant',
-    content: 'Bonjour ! Je suis Campus Co-Pilot. Demande-moi de résumer tes cours, gérer tes deadlines ou réserver une salle.',
+    content: "Hello! I'm Campus Co- Pilot.Ask me to summarize your courses, manage your deadlines, or book a room.",
   },
 ];
 
