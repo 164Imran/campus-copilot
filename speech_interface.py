@@ -64,15 +64,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                         result = await orchestrator.run_orchestrator(text_input, session_id="voice-session")
                                         full_text = result["response"]
                                         
-                                        # Envoyer tout le texte d'un coup au frontend
-                                        try:
-                                            await websocket.send_json({"type": "agent", "text": full_text})
-                                        except Exception:
-                                            return
-                                            
                                         # Découper en phrases pour le TTS
                                         import re
-                                        # On découpe sur la ponctuation (., !, ?, \n, :)
                                         sentences = re.split(r'([.!?\n:])', full_text)
                                         
                                         # Recombiner les phrases avec leur ponctuation
@@ -86,6 +79,16 @@ async def websocket_endpoint(websocket: WebSocket):
                                                 temp_sentence = ""
                                         if temp_sentence.strip():
                                             combined_sentences.append(temp_sentence.strip())
+                                            
+                                        # Envoyer tout le texte d'un coup au frontend AVEC les phrases découpées
+                                        try:
+                                            await websocket.send_json({
+                                                "type": "agent", 
+                                                "text": full_text,
+                                                "sentences": combined_sentences
+                                            })
+                                        except Exception:
+                                            return
                                             
                                         # Générer l'audio phrase par phrase et l'envoyer de façon synchrone
                                         for sentence in combined_sentences:
