@@ -1,0 +1,53 @@
+/* imageStatic.png — 1920×1080. Ajuste ces % si la zone cliquable ne colle pas à l’écran. */
+.landing-page {
+  --screen-left: 39.6%;
+  --screen-top: 24.6%;
+  --screen-width: 20.9%;
+  --screen-height: 37.6%;
+
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  background: #0c0b0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.landing-page__frame {
+  position: relative;
+  width: min(100vw, calc(100vh * 1920 / 1080));
+  height: min(100vh, calc(100vw * 1080 / 1920));
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+.landing-page__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  user-select: none;
+  pointer-events: none;
+}
+
+.landing-page__screen {
+  position: absolute;
+  left: var(--screen-left);
+  top: var(--screen-top);
+  width: var(--screen-width);
+  height: var(--screen-height);
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 35%);
+}
+
+.landing-page__os-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #1a1a1c;
+}

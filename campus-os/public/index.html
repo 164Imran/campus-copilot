@@ -29,6 +29,38 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+    <script>
+      (function () {
+        var embedded =
+          window.parent !== window ||
+          new URLSearchParams(window.location.search).has('embed');
+        if (!embedded) return;
+        window.addEventListener('load', function () {
+          addEventListener('mousemove', function (event) {
+            window.parent.postMessage(
+              {
+                clientX: event.clientX,
+                clientY: event.clientY,
+                type: 'mousemove',
+              },
+              '*'
+            );
+          });
+          addEventListener('mousedown', function () {
+            window.parent.postMessage({ type: 'mousedown' }, '*');
+          });
+          addEventListener('mouseup', function () {
+            window.parent.postMessage({ type: 'mouseup' }, '*');
+          });
+          addEventListener('keydown', function (event) {
+            window.parent.postMessage({ type: 'keydown', key: event.key }, '*');
+          });
+          addEventListener('keyup', function (event) {
+            window.parent.postMessage({ type: 'keyup', key: event.key }, '*');
+          });
+        });
+      })();
+    </script>
     <div id="root"></div>
     <!--
       This HTML file is a template.
