@@ -1,15 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
 
+interface WordInfo {
+  word: string;
+  sentenceIndex: number;
+  wordIndex: number;
+}
+
 export default function TUMVoice() {
   const [isRecording, setIsRecording] = useState(false);
   const [sttText, setSttText] = useState({ final: "", partial: "" });
   const [agentText, setAgentText] = useState("...");
+  
+  const [agentWords, setAgentWords] = useState<WordInfo[]>([]);
+  const [currentHighlight, setCurrentHighlight] = useState({ sentenceIndex: -1, wordIndex: -1 });
 
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const fullTranscriptRef = useRef<string>("");
   const audioQueueRef = useRef<Blob[]>([]);
   const isPlayingRef = useRef<boolean>(false);
+  
+  const agentSentencesRef = useRef<string[]>([]);
+  const sentenceQueueRef = useRef<number[]>([]);
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const activeWordRef = useRef<HTMLSpanElement | null>(null);
 
   const sttContainerRef = useRef<HTMLDivElement>(null);
   const agentContainerRef = useRef<HTMLDivElement>(null);
@@ -21,21 +35,42 @@ export default function TUMVoice() {
   }, [sttText]);
 
   useEffect(() => {
-    if (agentContainerRef.current) {
+    if (agentContainerRef.current && agentWords.length === 0) {
       agentContainerRef.current.scrollTop = agentContainerRef.current.scrollHeight;
     }
-  }, [agentText]);
+  }, [agentText, agentWords]);
+
+  useEffect(() => {
+    if (activeWordRef.current && agentContainerRef.current) {
+      activeWordRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [currentHighlight]);
 
   const playNextAudio = () => {
-    if (audioQueueRef.current.length === 0) {
+    if (audioQueueRef.current.length === 0 || sentenceQueueRef.current.length === 0) {
       isPlayingRef.current = false;
+      setCurrentHighlight({ sentenceIndex: -1, wordIndex: -1 });
       return;
     }
     isPlayingRef.current = true;
     const audioBlob = audioQueueRef.current.shift()!;
+    const currentSentenceIndex = sentenceQueueRef.current.shift()!;
+    const currentSentenceStr = agentSentencesRef.current[currentSentenceIndex];
+    
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
+    activeAudioRef.current = audio;
+    
+    audio.ontimeupdate = () => {
+      if (!audio.duration || !currentSentenceStr) return;
+      const progress = audio.currentTime / audio.duration;
+      const numWords = currentSentenceStr.split(' ').length;
+      const wIndex = Math.min(Math.floor(progress * numWords), numWords - 1);
+      setCurrentHighlight({ sentenceIndex: currentSentenceIndex, wordIndex: wIndex });
+    };
+
     audio.onended = () => {
+      activeAudioRef.current = null;
       playNextAudio();
     };
     audio.play();
@@ -45,12 +80,24 @@ export default function TUMVoice() {
     fullTranscriptRef.current = "";
     setSttText({ final: "", partial: "" });
     setAgentText("...");
+    setAgentWords([]);
+    setCurrentHighlight({ sentenceIndex: -1, wordIndex: -1 });
+    audioQueueRef.current = [];
+    sentenceQueueRef.current = [];
+    if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
+    }
 
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.close();
     }
 
-    const socket = new WebSocket('ws://localhost:8000/ws/stream');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname === 'localhost' && window.location.port === '3000' 
+      ? 'localhost:8000' 
+      : window.location.host;
+    const socket = new WebSocket(`${protocol}//${host}/ws/stream`);
     socket.binaryType = "blob";
     socketRef.current = socket;
 
@@ -100,6 +147,18 @@ export default function TUMVoice() {
         // Réponse de l'Agent (Bedrock)
         else if (data.type === "agent") {
           setAgentText("🤖 " + data.text);
+          if (data.sentences && Array.isArray(data.sentences)) {
+            const wordsArr: WordInfo[] = [];
+            data.sentences.forEach((sentence: string, sIndex: number) => {
+              const sWords = sentence.split(' ');
+              sWords.forEach((w: string, wIndex: number) => {
+                wordsArr.push({ word: w, sentenceIndex: sIndex, wordIndex: wIndex });
+              });
+            });
+            setAgentWords(wordsArr);
+            agentSentencesRef.current = data.sentences;
+            sentenceQueueRef.current = data.sentences.map((_: any, i: number) => i);
+          }
         }
       } catch (e) {
         console.error("Erreur de parsing JSON", e);
@@ -184,19 +243,45 @@ export default function TUMVoice() {
         style={{
         width: '100%',
         maxWidth: '600px',
-        height: '150px',
+        height: '110px',
         padding: '16px',
         background: 'rgba(0, 136, 255, 0.08)',
         borderRadius: '12px',
         border: '1px solid rgba(0, 136, 255, 0.2)',
         color: 'var(--tahoe-accent)',
         fontWeight: 500,
-        textAlign: 'left',
+        textAlign: 'center',
         overflowY: 'auto',
-        lineHeight: '1.5',
+        lineHeight: '1.8',
         flexShrink: 0
       }}>
-        <em>{agentText}</em>
+        {agentWords.length > 0 ? (
+           <div style={{ display: 'inline-block', maxWidth: '100%' }}>
+             <span style={{ marginRight: '8px' }}>🤖</span>
+             {agentWords.map((wInfo, i) => {
+               const isActive = wInfo.sentenceIndex === currentHighlight.sentenceIndex && 
+                                wInfo.wordIndex === currentHighlight.wordIndex;
+               return (
+                 <span 
+                   key={i} 
+                   ref={isActive ? activeWordRef : null}
+                   style={{ 
+                     display: 'inline-block',
+                     marginRight: '4px',
+                     color: isActive ? 'var(--tahoe-accent)' : 'var(--text-subtle)', 
+                     fontWeight: isActive ? 700 : 500,
+                     transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                     transition: 'all 0.15s ease'
+                   }}
+                 >
+                   {wInfo.word}
+                 </span>
+               );
+             })}
+           </div>
+        ) : (
+           <em>{agentText}</em>
+        )}
       </div>
 
       <button 
