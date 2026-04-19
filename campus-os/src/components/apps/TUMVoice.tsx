@@ -23,6 +23,7 @@ export default function TUMVoice() {
   
   const agentSentencesRef = useRef<string[]>([]);
   const sentenceQueueRef = useRef<number[]>([]);
+  const audioIndexRef = useRef<number>(0);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const activeWordRef = useRef<HTMLSpanElement | null>(null);
 
@@ -85,6 +86,7 @@ export default function TUMVoice() {
     setCurrentHighlight({ sentenceIndex: -1, wordIndex: -1 });
     audioQueueRef.current = [];
     sentenceQueueRef.current = [];
+    audioIndexRef.current = 0;
     if (activeAudioRef.current) {
         activeAudioRef.current.pause();
         activeAudioRef.current = null;
@@ -127,6 +129,9 @@ export default function TUMVoice() {
       if (event.data instanceof Blob) {
         console.log("🔊 Audio received from ElevenLabs");
         audioQueueRef.current.push(event.data);
+        sentenceQueueRef.current.push(audioIndexRef.current);
+        audioIndexRef.current += 1;
+        
         if (!isPlayingRef.current) {
           playNextAudio();
         }
@@ -159,7 +164,6 @@ export default function TUMVoice() {
             });
             setAgentWords(wordsArr);
             agentSentencesRef.current = data.sentences;
-            sentenceQueueRef.current = data.sentences.map((_: any, i: number) => i);
           }
         }
       } catch (e) {
