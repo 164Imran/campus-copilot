@@ -483,6 +483,44 @@ button.menubar-button {
   }
 }
 
+.copilot-status-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.copilot-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.copilot-status-pill--running {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  animation: copilot-pill-pulse 1.4s ease-in-out infinite;
+}
+
+.copilot-status-pill--done {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.copilot-status-pill--fallback {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+}
+
+@keyframes copilot-pill-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
 .copilot-input-area {
   flex-shrink: 0;
   display: flex;

@@ -11,6 +11,18 @@ from orchestrator import run_orchestrator
 
 app = FastAPI(title="Campus Co-Pilot API")
 
+
+@app.on_event("startup")
+async def warmup():
+    """Pre-warm Cognee embeddings model so first user request is fast."""
+    try:
+        from cognee_memory import get_student_context
+        await get_student_context("warmup")
+        print("✅ Cognee pré-chargé — prêt pour la démo")
+    except Exception as e:
+        print(f"⚠️ Warmup Cognee échoué ({e}) — première requête sera lente")
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

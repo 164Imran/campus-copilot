@@ -133,7 +133,7 @@ async def remember_course(course_name: str, summary: str, pdf_content: str = "")
             print(f"⚠️ Cognee échoué ({e})")
 
     # Toujours stocker dans SQLite (fiable, rapide, démo-safe)
-    topics = _extract_topics(safe_name, safe_summary)
+    topics = [w for w in safe_summary[:200].split() if len(w) > 4][:5] or [safe_summary[:60]]
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
         "INSERT OR REPLACE INTO courses (course_name, summary, topics, added_at) VALUES (?, ?, ?, ?)",
@@ -154,11 +154,14 @@ async def get_student_context(question: str) -> str:
     # Tentative Cognee (recherche sémantique dans le graphe)
     if COGNEE_AVAILABLE:
         try:
-            results = await cognee.search(query_text=question, query_type=SearchType.GRAPH_COMPLETION)
+            results = await asyncio.wait_for(
+                cognee.search(query_text=question, query_type=SearchType.GRAPH_COMPLETION),
+                timeout=3.0
+            )
             if results:
                 context_parts.append(f"[Cognee graph] {str(results)[:400]}")
         except Exception as e:
-            print(f"⚠️ Cognee search échoué ({e})")
+            print(f"⚠️ Cognee search ignoré ({type(e).__name__})")
 
     # Toujours compléter avec SQLite
     conn = sqlite3.connect(DB_PATH)
