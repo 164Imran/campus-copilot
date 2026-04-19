@@ -66,7 +66,7 @@ export default function TUMCourses() {
         overflowY: 'auto'
       }}>
         <div style={{ padding: '16px', borderBottom: '1px solid var(--stroke)', position: 'sticky', top: 0, background: 'var(--glass-2)', zIndex: 10 }}>
-          <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>📚 Mes Cours</h2>
+          <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)' }}>📚 My Courses</h2>
         </div>
         <div style={{ padding: '8px' }}>
           {courses.map(course => (
@@ -100,7 +100,7 @@ export default function TUMCourses() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: '32px', background: 'var(--glass-1)' }}>
         <h1 style={{ margin: '0 0 24px 0', fontSize: '1.8rem', color: 'var(--text-main)' }}>{cleanName(activeCourse)}</h1>
         
-        <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-subtle)', fontSize: '1rem' }}>Documents et Résumés générés :</h3>
+        <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-subtle)', fontSize: '1rem' }}>Documents and generated summaries:</h3>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
           {COURSES_DATA[activeCourse].map(file => (
             <button
